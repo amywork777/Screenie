@@ -47,26 +47,20 @@ final class ScreenRecorder: NSObject {
         config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
         config.showsCursor = false
         config.pixelFormat = kCVPixelFormatType_32BGRA
-        config.capturesAudio = captureAudio
-        if captureAudio {
-            config.sampleRate = 48000
-            config.channelCount = 2
-        }
+        // Disable audio in raw capture — it causes writer corruption
+        // System audio is captured separately and merged in post
+        config.capturesAudio = false
 
         // Remove existing file if present (prevents -12412 error)
         try? FileManager.default.removeItem(at: outputURL)
 
-        let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
+        let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mov)
 
         // Video input
         let videoSettings: [String: Any] = [
-            AVVideoCodecKey: AVVideoCodecType.hevc,
+            AVVideoCodecKey: AVVideoCodecType.h264,
             AVVideoWidthKey: w,
             AVVideoHeightKey: h,
-            AVVideoCompressionPropertiesKey: [
-                AVVideoAverageBitRateKey: 8_000_000,
-                AVVideoExpectedSourceFrameRateKey: 30,
-            ] as [String: Any],
         ]
         let vInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
         vInput.expectsMediaDataInRealTime = true
@@ -83,19 +77,7 @@ final class ScreenRecorder: NSObject {
         )
         pixelBufferAdaptor = adaptor
 
-        // Audio input (AAC encoding, accepts raw PCM from ScreenCaptureKit)
-        if captureAudio {
-            let audioSettings: [String: Any] = [
-                AVFormatIDKey: kAudioFormatMPEG4AAC,
-                AVSampleRateKey: 48000,
-                AVNumberOfChannelsKey: 2,
-                AVEncoderBitRateKey: 128000,
-            ]
-            let aInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
-            aInput.expectsMediaDataInRealTime = true
-            writer.add(aInput)
-            audioWriterInput = aInput
-        }
+        // Audio disabled in raw capture for reliability
 
         assetWriter = writer
         writer.startWriting()
@@ -103,20 +85,18 @@ final class ScreenRecorder: NSObject {
 
         let stream = SCStream(filter: filter, configuration: config, delegate: self)
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: .global(qos: .userInteractive))
-        if captureAudio {
-            try stream.addStreamOutput(self, type: .audio, sampleHandlerQueue: .global(qos: .userInteractive))
-        }
+        // Audio stream output disabled for reliability
         self.stream = stream
         try await stream.startCapture()
         isRecording = true
-        NSLog("Blink: Capture started (HEVC + %@)", captureAudio ? "AAC audio" : "no audio")
+        NSLog("Blink: Capture started (H.264, video only)")
     }
 
     func stop() async -> URL? {
         guard isRecording else { return nil }
         isRecording = false
 
-        NSLog("Blink: Stopping — %d video frames, %d audio samples", frameCount, audioSampleCount)
+        NSLog("Blink: Stopping — %d video frames", frameCount)
 
         if let stream {
             try? await stream.stopCapture()
@@ -124,7 +104,6 @@ final class ScreenRecorder: NSObject {
         }
 
         videoWriterInput?.markAsFinished()
-        audioWriterInput?.markAsFinished()
 
         if let writer = assetWriter, writer.status == .writing {
             await withCheckedContinuation { continuation in
@@ -164,7 +143,7 @@ extension ScreenRecorder: SCStreamOutput {
         case .screen:
             handleVideoSample(sampleBuffer, timestamp: originalTimestamp)
         case .audio:
-            handleAudioSample(sampleBuffer, timestamp: originalTimestamp)
+            break // Audio disabled
         @unknown default:
             break
         }
