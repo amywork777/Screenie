@@ -588,7 +588,8 @@ final class SimpleEditor {
             NSBezierPath(roundedRect: NSRect(
                 x: padding, y: padding,
                 width: contentSize.width, height: contentSize.height
-            ), xRadius: cornerRadius, yRadius: cornerRadius).fill(using: NSCompositingOperation.copy)
+            ), xRadius: cornerRadius, yRadius: cornerRadius).fill()
+            // Note: shadow-only effect — the frame itself goes on top in compositing
 
             return true
         }
