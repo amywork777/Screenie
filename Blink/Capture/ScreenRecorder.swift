@@ -53,6 +53,10 @@ final class ScreenRecorder: NSObject {
                 AVFormatIDKey: kAudioFormatLinearPCM,
                 AVSampleRateKey: 48000,
                 AVNumberOfChannelsKey: 2,
+                AVLinearPCMBitDepthKey: 16,
+                AVLinearPCMIsBigEndianKey: false,
+                AVLinearPCMIsFloatKey: false,
+                AVLinearPCMIsNonInterleaved: false,
             ]
             let aInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
             aInput.expectsMediaDataInRealTime = true
