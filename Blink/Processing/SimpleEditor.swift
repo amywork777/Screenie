@@ -492,11 +492,11 @@ final class SimpleEditor {
     private func clickHighlightAt(time: TimeInterval, clicks: [LoggedEvent]) -> CIImage? {
         for click in clicks {
             let dt = time - click.timestamp
-            guard dt >= 0 && dt < 0.4 else { continue } // 0.4s animation
+            guard dt >= 0 && dt < 0.2 else { continue } // 0.2s — snappy
 
-            let progress = CGFloat(dt / 0.4)
-            let radius = 8 + progress * 20  // expanding ring
-            let opacity = 1.0 - progress     // fading out
+            let progress = CGFloat(dt / 0.2)
+            let radius = 6 + progress * 16   // quick expanding ring
+            let opacity = 1.0 - progress      // fast fade
             let size = CGFloat(40)
 
             let highlight = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
