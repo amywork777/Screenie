@@ -217,71 +217,105 @@ final class SimpleEditor {
         let center: CGPoint
     }
 
-    /// Precompute zoom keyframes for the entire recording so we can smoothly
-    /// interpolate between them (both zoom level AND center position).
+    /// Screen Studio-style zoom: follows cursor continuously with spring physics.
+    /// Zooms in when activity starts, smoothly pans to follow mouse, zooms out during idle.
     private func buildZoomTimeline(clicks: [LoggedEvent], allEvents: [LoggedEvent], duration: TimeInterval) -> [(time: TimeInterval, state: ZoomState)] {
         let maxZoom: CGFloat = 1.5
-        let fadeIn = 0.3
-        let fadeOut = 0.5
-        let holdAfterLastClick = 1.0
+        let zoomInDuration = 0.6   // slow, cinematic zoom in
+        let zoomOutDuration = 0.8  // even slower zoom out
+        let idleBeforeZoomOut = 1.5 // stay zoomed this long after last activity
 
-        guard !clicks.isEmpty else { return [] }
+        // Build cursor position track from ALL events (moves + clicks)
+        var cursorTrack: [(time: TimeInterval, pos: CGPoint)] = []
+        for event in allEvents {
+            if let x = event.x, let y = event.y {
+                cursorTrack.append((time: event.timestamp, pos: CGPoint(x: x, y: y)))
+            }
+        }
+        guard !cursorTrack.isEmpty else { return [] }
+        cursorTrack.sort { $0.time < $1.time }
 
-        // Build a dense timeline at 30fps
+        // Find active periods (any mouse/keyboard activity)
+        let activityEvents = allEvents.filter { $0.type == .mouseClick || $0.type == .mouseMove || $0.type == .keyPress }
+        guard !activityEvents.isEmpty else { return [] }
+
+        let firstActivity = activityEvents.first!.timestamp
+        let lastActivity = activityEvents.last!.timestamp
+
+        // Build dense timeline at 30fps
         var timeline: [(time: TimeInterval, state: ZoomState)] = []
-        let step = 1.0 / 30.0
+        let fps = 30.0
+        let step = 1.0 / fps
         var t = 0.0
 
-        // Track current smooth center using exponential smoothing
-        var smoothCenter = CGPoint(x: clicks[0].x ?? 0, y: clicks[0].y ?? 0)
-        let smoothing: CGFloat = 0.15 // lower = smoother panning
+        // Spring physics state for camera center
+        var camX: CGFloat = cursorTrack[0].pos.x
+        var camY: CGFloat = cursorTrack[0].pos.y
+        var velX: CGFloat = 0
+        var velY: CGFloat = 0
+
+        // Spring constants — tuned for Screen Studio feel
+        let stiffness: CGFloat = 120   // how strongly it pulls toward target
+        let damping: CGFloat = 17      // how quickly oscillation dies (critically damped ≈ 2√stiffness)
+
+        // Current zoom level with smooth interpolation
+        var currentZoom: CGFloat = 1.0
 
         while t <= duration {
-            // Find the most recent click before or at this time
-            let recentClick = clicks.last(where: { $0.timestamp <= t })
-            // Find the next click after this time
-            let nextClick = clicks.first(where: { $0.timestamp > t })
-            // Time since last click
-            let timeSinceLast = recentClick.map { t - $0.timestamp } ?? Double.infinity
-            // Time until next click
-            let timeUntilNext = nextClick.map { $0.timestamp - t } ?? Double.infinity
-
-            // Determine target center (most recent click position)
-            if let click = recentClick, let x = click.x, let y = click.y {
-                let target = CGPoint(x: x, y: y)
-                // Smooth pan toward target
-                smoothCenter.x += (target.x - smoothCenter.x) * smoothing
-                smoothCenter.y += (target.y - smoothCenter.y) * smoothing
-            }
-
-            // Determine zoom level
-            let zoom: CGFloat
-            let firstClickTime = clicks[0].timestamp
-            let lastClickTime = clicks.last!.timestamp
-
-            if t < firstClickTime {
-                // Before first click — ease in as we approach
-                if firstClickTime - t < fadeIn {
-                    let progress = CGFloat((fadeIn - (firstClickTime - t)) / fadeIn)
-                    zoom = 1.0 + (maxZoom - 1.0) * smoothstep(progress)
-                } else {
-                    zoom = 1.0
-                }
-            } else if t > lastClickTime + holdAfterLastClick {
-                // After last click + hold — ease out
-                let elapsed = t - (lastClickTime + holdAfterLastClick)
-                if elapsed < fadeOut {
-                    let progress = CGFloat(elapsed / fadeOut)
-                    zoom = maxZoom - (maxZoom - 1.0) * smoothstep(progress)
-                } else {
-                    zoom = 1.0
-                }
+            // Find cursor position at this time (most recent known position)
+            let cursorPos: CGPoint
+            if let latest = cursorTrack.last(where: { $0.time <= t }) {
+                cursorPos = latest.pos
             } else {
-                // During clicks — stay zoomed
-                zoom = maxZoom
+                cursorPos = CGPoint(x: camX, y: camY)
             }
 
-            timeline.append((time: t, state: ZoomState(level: zoom, center: smoothCenter)))
+            // Determine target zoom level
+            let targetZoom: CGFloat
+            if t < firstActivity {
+                targetZoom = 1.0
+            } else if t > lastActivity + idleBeforeZoomOut {
+                targetZoom = 1.0
+            } else {
+                // Check if there's been recent activity (within idleBeforeZoomOut)
+                let recentActivity = activityEvents.contains(where: {
+                    $0.timestamp <= t && t - $0.timestamp < idleBeforeZoomOut
+                })
+                targetZoom = recentActivity ? maxZoom : 1.0
+            }
+
+            // Smoothly interpolate zoom level (ease toward target)
+            let zoomSpeed: CGFloat
+            if targetZoom > currentZoom {
+                zoomSpeed = CGFloat(step / zoomInDuration) * 3.0 // ease-in speed
+            } else {
+                zoomSpeed = CGFloat(step / zoomOutDuration) * 3.0 // ease-out speed
+            }
+            currentZoom += (targetZoom - currentZoom) * zoomSpeed
+
+            // Spring physics for camera position (only when zoomed in)
+            if currentZoom > 1.05 {
+                let dt = CGFloat(step)
+
+                // Spring force toward cursor
+                let dx = cursorPos.x - camX
+                let dy = cursorPos.y - camY
+                let forceX = stiffness * dx - damping * velX
+                let forceY = stiffness * dy - damping * velY
+
+                velX += forceX * dt
+                velY += forceY * dt
+                camX += velX * dt
+                camY += velY * dt
+            } else {
+                // When zoomed out, snap to cursor (no lag needed)
+                camX = cursorPos.x
+                camY = cursorPos.y
+                velX = 0
+                velY = 0
+            }
+
+            timeline.append((time: t, state: ZoomState(level: currentZoom, center: CGPoint(x: camX, y: camY))))
             t += step
         }
 
@@ -290,15 +324,8 @@ final class SimpleEditor {
 
     private func zoomAt(time: TimeInterval, timeline: [(time: TimeInterval, state: ZoomState)]) -> ZoomState {
         guard !timeline.isEmpty else { return ZoomState(level: 1.0, center: .zero) }
-
-        // Binary search for closest frame
         let idx = timeline.lastIndex(where: { $0.time <= time }) ?? 0
         return timeline[idx].state
-    }
-
-    private func smoothstep(_ t: CGFloat) -> CGFloat {
-        let clamped = max(0, min(1, t))
-        return clamped * clamped * (3 - 2 * clamped)
     }
 
     // MARK: - Speed mapping
