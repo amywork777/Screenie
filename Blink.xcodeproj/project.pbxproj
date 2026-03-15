@@ -17,6 +17,12 @@
 		B10000000000000000000008 /* EventLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000109 /* EventLogger.swift */; };
 		B10000000000000000000009 /* ScreenRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000010A /* ScreenRecorder.swift */; };
 		B1000000000000000000000A /* RecordingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000010B /* RecordingSession.swift */; };
+		B1000000000000000000000B /* ActivityAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000010C /* ActivityAnalyzer.swift */; };
+		B1000000000000000000000C /* ActivityAnalyzerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000010D /* ActivityAnalyzerTests.swift */; };
+		B1000000000000000000000E /* SpeedMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000010E /* SpeedMapper.swift */; };
+		B1000000000000000000000F /* SpeedMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000010F /* SpeedMapperTests.swift */; };
+		B10000000000000000000110 /* ZoomEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000111 /* ZoomEngine.swift */; };
+		B10000000000000000000112 /* ZoomEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000113 /* ZoomEngineTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +40,12 @@
 		B10000000000000000000109 /* EventLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventLogger.swift; sourceTree = "<group>"; };
 		B1000000000000000000010A /* ScreenRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenRecorder.swift; sourceTree = "<group>"; };
 		B1000000000000000000010B /* RecordingSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingSession.swift; sourceTree = "<group>"; };
+		B1000000000000000000010C /* ActivityAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityAnalyzer.swift; sourceTree = "<group>"; };
+		B1000000000000000000010D /* ActivityAnalyzerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityAnalyzerTests.swift; sourceTree = "<group>"; };
+		B1000000000000000000010E /* SpeedMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedMapper.swift; sourceTree = "<group>"; };
+		B1000000000000000000010F /* SpeedMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedMapperTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000111 /* ZoomEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomEngine.swift; sourceTree = "<group>"; };
+		B10000000000000000000113 /* ZoomEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomEngineTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,6 +121,9 @@
 		B10000000000000000000213 /* Processing */ = {
 			isa = PBXGroup;
 			children = (
+				B1000000000000000000010C /* ActivityAnalyzer.swift */,
+				B1000000000000000000010E /* SpeedMapper.swift */,
+				B10000000000000000000111 /* ZoomEngine.swift */,
 			);
 			path = Processing;
 			sourceTree = "<group>";
@@ -142,6 +157,8 @@
 			children = (
 				B10000000000000000000103 /* BlinkTests.swift */,
 				B10000000000000000000106 /* InputStateTests.swift */,
+				B1000000000000000000010D /* ActivityAnalyzerTests.swift */,
+				B1000000000000000000010F /* SpeedMapperTests.swift */,
 			);
 			path = BlinkTests;
 			sourceTree = "<group>";
@@ -244,6 +261,8 @@
 				B10000000000000000000008 /* EventLogger.swift in Sources */,
 				B10000000000000000000009 /* ScreenRecorder.swift in Sources */,
 				B1000000000000000000000A /* RecordingSession.swift in Sources */,
+				B1000000000000000000000B /* ActivityAnalyzer.swift in Sources */,
+				B1000000000000000000000E /* SpeedMapper.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -253,6 +272,8 @@
 			files = (
 				B10000000000000000000003 /* BlinkTests.swift in Sources */,
 				B10000000000000000000005 /* InputStateTests.swift in Sources */,
+				B1000000000000000000000C /* ActivityAnalyzerTests.swift in Sources */,
+				B1000000000000000000000F /* SpeedMapperTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
