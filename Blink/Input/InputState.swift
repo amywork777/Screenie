@@ -2,14 +2,13 @@ import Foundation
 
 enum InputPhase: Equatable {
     case idle
-    case pressed
-    case holdRecording
-    case awaitSecondTap
-    case secondPressed
-    case toggleRecording
-    case toggleStopPressed
-    case toggleStopAwait
-    case toggleStopSecond
+    case pressed              // first tap down
+    case awaitSecondTap       // first tap released, waiting for second
+    case secondPressed        // second tap down
+    case toggleRecording      // recording active
+    case toggleStopPressed    // first tap of stop double-tap
+    case toggleStopAwait      // first tap released, waiting for second stop tap
+    case toggleStopSecond     // second tap of stop down
 }
 
 enum InputAction: Equatable {
@@ -17,6 +16,9 @@ enum InputAction: Equatable {
     case stopRecording
 }
 
+/// Double-tap only state machine.
+/// Double-tap Right Option to start recording, double-tap again to stop.
+/// No hold mode — holding Option interferes with typing.
 final class InputState {
     private(set) var current: InputPhase = .idle
 
@@ -44,9 +46,6 @@ final class InputState {
         case .pressed:
             current = .awaitSecondTap
             return nil
-        case .holdRecording:
-            current = .idle
-            return .stopRecording
         case .secondPressed:
             current = .toggleRecording
             return .startRecording
@@ -59,12 +58,6 @@ final class InputState {
         default:
             return nil
         }
-    }
-
-    func handleHoldTimerFired() -> InputAction? {
-        guard current == .pressed else { return nil }
-        current = .holdRecording
-        return .startRecording
     }
 
     func handleDoubleTapTimerFired() -> InputAction? {

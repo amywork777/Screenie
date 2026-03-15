@@ -70,7 +70,7 @@ final class MainWindow: NSWindow {
 
         // Hotkey instructions
         let instructionLabel = NSTextField(wrappingLabelWithString:
-            "Hold Right Option — record while held\nDouble-tap Right Option — toggle recording on/off"
+            "Double-tap Right Option — start recording\nDouble-tap Right Option again — stop recording"
         )
         instructionLabel.font = .systemFont(ofSize: 12)
         instructionLabel.textColor = .tertiaryLabelColor

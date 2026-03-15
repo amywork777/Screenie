@@ -12,13 +12,11 @@ final class HotkeyListener {
     weak var delegate: HotkeyListenerDelegate?
 
     private let state = InputState()
-    private var holdTimer: DispatchWorkItem?
     private var doubleTapTimer: DispatchWorkItem?
     private var globalMonitor: Any?
     private var localMonitor: Any?
 
-    private let holdThreshold: TimeInterval = 0.3
-    private let doubleTapWindow: TimeInterval = 0.4
+    private let doubleTapWindow: TimeInterval = 0.35
     private let rightOptionKeyCode: UInt16 = 61 // 0x3D
 
     static var isAccessibilityGranted: Bool {
@@ -31,25 +29,22 @@ final class HotkeyListener {
     }
 
     func start() -> Bool {
-        // Check accessibility
         if !HotkeyListener.isAccessibilityGranted {
             NSLog("Blink: Accessibility not granted, prompting...")
             HotkeyListener.promptAccessibility()
             return false
         }
 
-        // Use NSEvent global monitor for flagsChanged events
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             self?.handleFlagsChanged(event)
         }
 
-        // Also monitor when our own app is active
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             self?.handleFlagsChanged(event)
             return event
         }
 
-        NSLog("Blink: Event monitors installed")
+        NSLog("Blink: Event monitors installed (double-tap Right Option to record)")
         return globalMonitor != nil
     }
 
@@ -62,21 +57,14 @@ final class HotkeyListener {
             NSEvent.removeMonitor(monitor)
             localMonitor = nil
         }
-        holdTimer?.cancel()
         doubleTapTimer?.cancel()
     }
 
     private func handleFlagsChanged(_ event: NSEvent) {
         let keyCode = event.keyCode
-
-        // Debug: log all modifier key events
-        NSLog("Blink: flagsChanged keyCode=%d (0x%02X) flags=0x%lX", keyCode, keyCode, event.modifierFlags.rawValue)
-
         guard keyCode == rightOptionKeyCode else { return }
 
         let isDown = event.modifierFlags.contains(.option)
-
-        NSLog("Blink: Right Option %@", isDown ? "DOWN" : "UP")
 
         if isDown {
             onKeyDown()
@@ -86,26 +74,15 @@ final class HotkeyListener {
     }
 
     private func onKeyDown() {
-        holdTimer?.cancel()
-
         let action = state.handleKeyDown()
         dispatchAction(action)
-
-        let timer = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            let action = self.state.handleHoldTimerFired()
-            self.dispatchAction(action)
-        }
-        holdTimer = timer
-        DispatchQueue.main.asyncAfter(deadline: .now() + holdThreshold, execute: timer)
     }
 
     private func onKeyUp() {
-        holdTimer?.cancel()
-
         let action = state.handleKeyUp()
         dispatchAction(action)
 
+        // Start double-tap timeout
         doubleTapTimer?.cancel()
         let timer = DispatchWorkItem { [weak self] in
             guard let self else { return }
