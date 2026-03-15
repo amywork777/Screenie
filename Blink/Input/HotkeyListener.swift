@@ -17,7 +17,7 @@ final class HotkeyListener {
     private var localMonitor: Any?
 
     private let doubleTapWindow: TimeInterval = 0.35
-    private let rightControlKeyCode: UInt16 = 62 // 0x3E
+    private let controlKeyCode: UInt16 = 59 // 0x3B — Control key (MacBook)
 
     static var isAccessibilityGranted: Bool {
         AXIsProcessTrusted()
@@ -68,7 +68,7 @@ final class HotkeyListener {
               keyCode, keyCode, event.modifierFlags.rawValue,
               event.modifierFlags.contains(.control) ? 1 : 0)
 
-        guard keyCode == rightControlKeyCode else { return }
+        guard keyCode == controlKeyCode else { return }
 
         let isDown = event.modifierFlags.contains(.control)
 
