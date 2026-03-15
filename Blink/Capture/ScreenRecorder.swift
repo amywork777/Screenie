@@ -40,7 +40,7 @@ final class ScreenRecorder: NSObject {
         config.width = w
         config.height = h
         config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
-        config.showsCursor = true
+        config.showsCursor = false  // We render our own smoothed cursor in post
         config.capturesAudio = false
         // Request BGRA pixel format for compatibility
         config.pixelFormat = kCVPixelFormatType_32BGRA
