@@ -17,7 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let recordingIndicator = RecordingIndicator()
     private var previewHUD: PreviewHUD?
     private var session: RecordingSession?
-    private var onboardingWindow: OnboardingWindow?
+    private var mainWindow: MainWindow?
     private let settings = Settings.shared
 
     private let startSound = NSSound(named: "Tink")
@@ -28,40 +28,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menuBar.delegate = self
         menuBar.setup()
-        NSLog("Blink: Menu bar set up")
 
-        // Skip login item on first launch to avoid crash before signing
-        if settings.hasCompletedOnboarding {
-            updateLoginItem()
-        }
+        // Always show the main window on launch
+        showMainWindow()
 
-        if !settings.hasCompletedOnboarding {
-            NSLog("Blink: Showing onboarding")
-            showOnboarding()
-        } else {
-            NSLog("Blink: Starting hotkey listener")
-            startListening()
-        }
+        // Start hotkey listener
+        startListening()
+
+        settings.hasCompletedOnboarding = true
     }
 
-    private func showOnboarding() {
-        let window = OnboardingWindow { [weak self] in
-            self?.startListening()
-            self?.onboardingWindow = nil
-        }
+    private func showMainWindow() {
+        let window = MainWindow()
         window.makeKeyAndOrderFront(nil)
         NSApp.setActivationPolicy(.regular)
         NSApp.activate()
-        onboardingWindow = window
+        mainWindow = window
     }
 
     private func startListening() {
         hotkeyListener.delegate = self
         let success = hotkeyListener.start()
-        if !success {
-            NSLog("Blink: Accessibility permission required for hotkey")
+        if success {
+            NSLog("Blink: Hotkey listener started — hold Right Option to record!")
+            mainWindow?.updateHotkeyStatus(granted: true)
+        } else {
+            NSLog("Blink: Accessibility permission required")
+            mainWindow?.updateHotkeyStatus(granted: false)
         }
         menuBar.setTooltip("Hold Right Option to record")
+
+        // Re-check accessibility every 2 seconds until granted
+        if !success {
+            retryHotkeyListener()
+        }
+    }
+
+    private func retryHotkeyListener() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            guard let self else { return }
+            let success = self.hotkeyListener.start()
+            if success {
+                NSLog("Blink: Hotkey listener started after permission grant!")
+                self.mainWindow?.updateHotkeyStatus(granted: true)
+                self.mainWindow?.updateRecordingStatus(false)
+            } else {
+                self.retryHotkeyListener()
+            }
+        }
     }
 
     func updateLoginItem() {
@@ -84,6 +98,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startSound?.play()
         recordingIndicator.show()
         menuBar.showRecordingState(true)
+        mainWindow?.updateRecordingStatus(true)
 
         let newSession = RecordingSession(storage: storage)
         session = newSession
@@ -94,11 +109,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     captureAudio: settings.captureAudio,
                     captureMicrophone: settings.captureMicrophone
                 )
+                NSLog("Blink: Recording started!")
             } catch {
                 NSLog("Blink: Recording failed: \(error)")
-                recordingIndicator.hide()
-                menuBar.showRecordingState(false)
-                session = nil
+                await MainActor.run {
+                    recordingIndicator.hide()
+                    menuBar.showRecordingState(false)
+                    mainWindow?.updateRecordingStatus(false)
+                    session = nil
+                }
             }
         }
     }
@@ -108,6 +127,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         stopSound?.play()
         recordingIndicator.hide()
         menuBar.showRecordingState(false)
+        mainWindow?.updateRecordingStatus(false)
 
         recordingIndicator.showProcessing()
 
@@ -143,6 +163,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             duration: output.duration
         )
         previewHUD = hud
+    }
+
+    // Re-open window when dock icon clicked
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            showMainWindow()
+        }
+        return true
     }
 }
 
