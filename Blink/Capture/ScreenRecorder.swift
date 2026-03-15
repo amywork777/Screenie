@@ -7,20 +7,17 @@ final class ScreenRecorder: NSObject {
     private var stream: SCStream?
     private var assetWriter: AVAssetWriter?
     private var videoInput: AVAssetWriterInput?
-    private var audioInput: AVAssetWriterInput?
     private var isRecording = false
-    private var sessionStarted = false
     private var outputURL: URL?
     private var frameCount = 0
-    private var lastVideoTimestamp = CMTime.invalid
-    private var lastAudioTimestamp = CMTime.invalid
+    private var firstTimestamp: CMTime?
+    private var lastNormalizedTimestamp = CMTime.invalid
 
     func start(outputURL: URL, captureAudio: Bool, captureMicrophone: Bool) async throws {
         self.outputURL = outputURL
-        sessionStarted = false
         frameCount = 0
-        lastVideoTimestamp = .invalid
-        lastAudioTimestamp = .invalid
+        firstTimestamp = nil
+        lastNormalizedTimestamp = .invalid
 
         let content = try await SCShareableContent.current
         let mouseLocation = NSEvent.mouseLocation
@@ -40,7 +37,8 @@ final class ScreenRecorder: NSObject {
         config.height = display.height
         config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
         config.showsCursor = true
-        config.capturesAudio = captureAudio
+        // No audio — simplifies recording and prevents corruption
+        config.capturesAudio = false
 
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mov)
 
@@ -54,28 +52,12 @@ final class ScreenRecorder: NSObject {
         writer.add(vInput)
         videoInput = vInput
 
-        if captureAudio {
-            let audioSettings: [String: Any] = [
-                AVFormatIDKey: kAudioFormatMPEG4AAC,
-                AVSampleRateKey: 48000,
-                AVNumberOfChannelsKey: 2,
-                AVEncoderBitRateKey: 128000,
-            ]
-            let aInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
-            aInput.expectsMediaDataInRealTime = true
-            writer.add(aInput)
-            audioInput = aInput
-        }
-
         assetWriter = writer
         writer.startWriting()
-        // Don't start session yet — we'll start it with the first sample buffer's timestamp
+        writer.startSession(atSourceTime: .zero)
 
         let stream = SCStream(filter: filter, configuration: config, delegate: self)
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: .global(qos: .userInteractive))
-        if captureAudio {
-            try stream.addStreamOutput(self, type: .audio, sampleHandlerQueue: .global(qos: .userInteractive))
-        }
         self.stream = stream
         try await stream.startCapture()
         isRecording = true
@@ -94,7 +76,6 @@ final class ScreenRecorder: NSObject {
         }
 
         videoInput?.markAsFinished()
-        audioInput?.markAsFinished()
 
         if let writer = assetWriter, writer.status == .writing {
             await withCheckedContinuation { continuation in
@@ -103,14 +84,14 @@ final class ScreenRecorder: NSObject {
                     continuation.resume()
                 }
             }
+        } else if let writer = assetWriter {
+            NSLog("Blink: AVAssetWriter status=%d, error=%@", writer.status.rawValue, writer.error?.localizedDescription ?? "none")
         }
 
-        // Verify the file was actually written
         if let url = outputURL {
             let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? 0
             NSLog("Blink: Output file size: %d bytes at %@", size, url.path)
             if size == 0 {
-                NSLog("Blink: WARNING — output file is empty!")
                 return nil
             }
         }
@@ -121,47 +102,54 @@ final class ScreenRecorder: NSObject {
 
 extension ScreenRecorder: SCStreamDelegate {
     func stream(_ stream: SCStream, didStopWithError error: Error) {
-        NSLog("Blink: SCStream stopped with error: \(error.localizedDescription)")
+        NSLog("Blink: SCStream error: \(error.localizedDescription)")
     }
 }
 
 extension ScreenRecorder: SCStreamOutput {
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
+        guard type == .screen else { return }
         guard isRecording, CMSampleBufferDataIsReady(sampleBuffer) else { return }
-
         guard let writer = assetWriter, writer.status == .writing else { return }
 
-        // Start session with first sample buffer's timestamp
-        if !sessionStarted {
-            let timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
-            writer.startSession(atSourceTime: timestamp)
-            sessionStarted = true
-            NSLog("Blink: Session started at timestamp %.3f", timestamp.seconds)
+        let originalTimestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+
+        // Record first timestamp as the base offset
+        if firstTimestamp == nil {
+            firstTimestamp = originalTimestamp
+            NSLog("Blink: First frame at %.3f", originalTimestamp.seconds)
         }
 
-        let timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+        // Normalize to zero-based timestamp
+        let normalized = originalTimestamp - firstTimestamp!
 
-        switch type {
-        case .screen:
-            // Skip out-of-order frames
-            if lastVideoTimestamp.isValid && timestamp <= lastVideoTimestamp {
-                return
-            }
-            lastVideoTimestamp = timestamp
-            if let videoInput, videoInput.isReadyForMoreMediaData {
-                videoInput.append(sampleBuffer)
-                frameCount += 1
-            }
-        case .audio:
-            if lastAudioTimestamp.isValid && timestamp <= lastAudioTimestamp {
-                return
-            }
-            lastAudioTimestamp = timestamp
-            if let audioInput, audioInput.isReadyForMoreMediaData {
-                audioInput.append(sampleBuffer)
-            }
-        @unknown default:
-            break
+        // Skip out-of-order frames
+        if lastNormalizedTimestamp.isValid && normalized <= lastNormalizedTimestamp {
+            return
+        }
+        lastNormalizedTimestamp = normalized
+
+        // Create a copy of the sample buffer with the normalized timestamp
+        var timingInfo = CMSampleTimingInfo(
+            duration: CMSampleBufferGetDuration(sampleBuffer),
+            presentationTimeStamp: normalized,
+            decodeTimeStamp: .invalid
+        )
+
+        var newBuffer: CMSampleBuffer?
+        let status = CMSampleBufferCreateCopyWithNewTiming(
+            allocator: nil,
+            sampleBuffer: sampleBuffer,
+            sampleTimingEntryCount: 1,
+            sampleTimingArray: &timingInfo,
+            sampleBufferOut: &newBuffer
+        )
+
+        guard status == noErr, let buffer = newBuffer else { return }
+
+        if let videoInput, videoInput.isReadyForMoreMediaData {
+            videoInput.append(buffer)
+            frameCount += 1
         }
     }
 }
