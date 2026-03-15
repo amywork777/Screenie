@@ -178,31 +178,35 @@ final class SimpleEditor {
         context: CIContext,
         adaptor: AVAssetWriterInputPixelBufferAdaptor
     ) -> CVPixelBuffer? {
-        guard zoom.level > 1.01 else { return nil } // No zoom needed
+        guard zoom.level > 1.02 else { return nil } // No zoom needed
 
         let inputImage = CIImage(cvPixelBuffer: pixelBuffer)
 
-        // Crop to zoomed region
+        // Convert cursor center from Cocoa coords (Y=0 bottom) to pixel buffer coords (Y=0 top)
+        // Then to CIImage coords (Y=0 bottom) — so the two flips cancel out for X,
+        // but Y needs: pixelBufferY = screenHeight - cocoaY, then ciImageY = screenHeight - pixelBufferY = cocoaY
+        // So we can use zoom.center directly in CIImage space!
+        let centerX = zoom.center.x
+        let centerY = zoom.center.y  // Cocoa Y ≈ CIImage Y
+
         let cropW = size.width / zoom.level
         let cropH = size.height / zoom.level
-        var cropX = zoom.center.x - cropW / 2
-        var cropY = zoom.center.y - cropH / 2
+        var cropX = centerX - cropW / 2
+        var cropY = centerY - cropH / 2
+
+        // Clamp to image bounds
         cropX = max(0, min(cropX, size.width - cropW))
         cropY = max(0, min(cropY, size.height - cropH))
 
-        // CIImage has flipped Y
-        let flippedY = size.height - cropY - cropH
+        let cropRect = CGRect(x: cropX, y: cropY, width: cropW, height: cropH)
 
-        let cropped = inputImage.cropped(to: CGRect(x: cropX, y: flippedY, width: cropW, height: cropH))
-
-        // Scale back to full size
-        let scaleX = size.width / cropW
-        let scaleY = size.height / cropH
+        // Crop, translate to origin, scale to full size
+        let cropped = inputImage.cropped(to: cropRect)
         let scaled = cropped
-            .transformed(by: CGAffineTransform(translationX: -cropX, y: -flippedY))
-            .transformed(by: CGAffineTransform(scaleX: scaleX, y: scaleY))
+            .transformed(by: CGAffineTransform(translationX: -cropRect.origin.x, y: -cropRect.origin.y))
+            .transformed(by: CGAffineTransform(scaleX: size.width / cropW, y: size.height / cropH))
 
-        // Render to a new pixel buffer
+        // Render to output buffer
         guard let pool = adaptor.pixelBufferPool else { return nil }
         var outputBuffer: CVPixelBuffer?
         CVPixelBufferPoolCreatePixelBuffer(nil, pool, &outputBuffer)
@@ -220,10 +224,10 @@ final class SimpleEditor {
     /// Screen Studio-style zoom: follows cursor continuously with spring physics.
     /// Zooms in when activity starts, smoothly pans to follow mouse, zooms out during idle.
     private func buildZoomTimeline(clicks: [LoggedEvent], allEvents: [LoggedEvent], duration: TimeInterval) -> [(time: TimeInterval, state: ZoomState)] {
-        let maxZoom: CGFloat = 1.5
-        let zoomInDuration = 0.6   // slow, cinematic zoom in
-        let zoomOutDuration = 0.8  // even slower zoom out
-        let idleBeforeZoomOut = 1.5 // stay zoomed this long after last activity
+        let maxZoom: CGFloat = 1.35  // subtle — Screen Studio doesn't zoom too aggressively
+        let zoomInDuration = 0.8    // slow, cinematic zoom in
+        let zoomOutDuration = 1.2   // very slow zoom out for buttery feel
+        let idleBeforeZoomOut = 2.0 // stay zoomed a while after last activity
 
         // Build cursor position track from ALL events (moves + clicks)
         var cursorTrack: [(time: TimeInterval, pos: CGPoint)] = []
@@ -254,9 +258,11 @@ final class SimpleEditor {
         var velX: CGFloat = 0
         var velY: CGFloat = 0
 
-        // Spring constants — tuned for Screen Studio feel
-        let stiffness: CGFloat = 120   // how strongly it pulls toward target
-        let damping: CGFloat = 17      // how quickly oscillation dies (critically damped ≈ 2√stiffness)
+        // Spring constants — tuned for buttery Screen Studio feel
+        // Lower stiffness = slower, more cinematic following
+        // Damping ratio ~1.0 = critically damped (no bounce, just smooth settling)
+        let stiffness: CGFloat = 60    // gentle pull toward cursor
+        let damping: CGFloat = 16      // critically damped (2 * sqrt(60) ≈ 15.5)
 
         // Current zoom level with smooth interpolation
         var currentZoom: CGFloat = 1.0
@@ -284,14 +290,15 @@ final class SimpleEditor {
                 targetZoom = recentActivity ? maxZoom : 1.0
             }
 
-            // Smoothly interpolate zoom level (ease toward target)
-            let zoomSpeed: CGFloat
+            // Exponential ease toward target zoom — never linear, always smooth
+            let tau: CGFloat  // time constant (lower = faster)
             if targetZoom > currentZoom {
-                zoomSpeed = CGFloat(step / zoomInDuration) * 3.0 // ease-in speed
+                tau = CGFloat(zoomInDuration) / 3.0
             } else {
-                zoomSpeed = CGFloat(step / zoomOutDuration) * 3.0 // ease-out speed
+                tau = CGFloat(zoomOutDuration) / 3.0
             }
-            currentZoom += (targetZoom - currentZoom) * zoomSpeed
+            let alpha = 1.0 - exp(-CGFloat(step) / tau)
+            currentZoom += (targetZoom - currentZoom) * alpha
 
             // Spring physics for camera position (only when zoomed in)
             if currentZoom > 1.05 {
