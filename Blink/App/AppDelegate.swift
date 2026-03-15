@@ -15,13 +15,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let storage = StorageManager()
     private lazy var menuBar = MenuBarController(storage: storage)
     private let recordingIndicator = RecordingIndicator()
+    private let floatingIndicator = FloatingIndicator()
     private var previewHUD: PreviewHUD?
     private var session: RecordingSession?
     private var mainWindow: MainWindow?
     private let settings = Settings.shared
-
-    private let startSound = NSSound(named: "Tink")
-    private let stopSound = NSSound(named: "Pop")
+    private let sounds = SoundEffects.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("Blink: applicationDidFinishLaunching")
@@ -95,8 +94,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func startRecording() {
         guard session == nil else { return }
-        startSound?.play()
+        sounds.playStart()
         recordingIndicator.show()
+        floatingIndicator.show()
         menuBar.showRecordingState(true)
         mainWindow?.updateRecordingStatus(true)
 
@@ -124,8 +124,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func stopRecording() {
         guard let currentSession = session else { return }
-        stopSound?.play()
+        sounds.playStop()
         recordingIndicator.hide()
+        floatingIndicator.hide()
         menuBar.showRecordingState(false)
         mainWindow?.updateRecordingStatus(false)
 

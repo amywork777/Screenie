@@ -32,6 +32,8 @@
 		B10000000000000000000120 /* PreviewHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000121 /* PreviewHUD.swift */; };
 	B10000000000000000000131 /* MainWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000130 /* MainWindow.swift */; };
 	B10000000000000000000141 /* SimpleEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000140 /* SimpleEditor.swift */; };
+	B10000000000000000000151 /* FloatingIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000150 /* FloatingIndicator.swift */; };
+	B10000000000000000000153 /* SoundEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000152 /* SoundEffects.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -64,6 +66,8 @@
 		B10000000000000000000121 /* PreviewHUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewHUD.swift; sourceTree = "<group>"; };
 			B10000000000000000000130 /* MainWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindow.swift; sourceTree = "<group>"; };
 		B10000000000000000000140 /* SimpleEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimpleEditor.swift; sourceTree = "<group>"; };
+	B10000000000000000000150 /* FloatingIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingIndicator.swift; sourceTree = "<group>"; };
+	B10000000000000000000152 /* SoundEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundEffects.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -156,6 +160,8 @@
 				B1000000000000000000011F /* RecordingIndicator.swift */,
 				B10000000000000000000121 /* PreviewHUD.swift */,
 			B10000000000000000000130 /* MainWindow.swift */,
+				B10000000000000000000150 /* FloatingIndicator.swift */,
+				B10000000000000000000152 /* SoundEffects.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -300,6 +306,8 @@
 				B10000000000000000000120 /* PreviewHUD.swift in Sources */,
 			B10000000000000000000131 /* MainWindow.swift in Sources */,
 			B10000000000000000000141 /* SimpleEditor.swift in Sources */,
+			B10000000000000000000151 /* FloatingIndicator.swift in Sources */,
+			B10000000000000000000153 /* SoundEffects.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
