@@ -187,7 +187,29 @@ final class SimpleEditor {
 
         let editedDuration = lastOutputTime.seconds
         let fileSize = (try? FileManager.default.attributesOfItem(atPath: outputURL.path)[.size] as? Int) ?? 0
-        NSLog("Blink: Done! %d frames, %.1fs → %.1fs, %d bytes", frameCount, durationSecs, editedDuration, fileSize)
+        NSLog("Blink: Video done! %d frames, %.1fs → %.1fs, %d bytes", frameCount, durationSecs, editedDuration, fileSize)
+
+        // 5. Merge audio from raw recording into the edited video
+        let audioTracks = try await asset.loadTracks(withMediaType: .audio)
+        if let rawAudioTrack = audioTracks.first {
+            NSLog("Blink: Merging audio track...")
+            let finalURL = outputURL.deletingLastPathComponent().appendingPathComponent("final.mp4")
+            do {
+                try await mergeAudioIntoVideo(
+                    videoURL: outputURL,
+                    rawAudioTrack: rawAudioTrack,
+                    timeMappings: hasSpeedChanges ? timeMappings : [],
+                    outputURL: finalURL
+                )
+                // Replace video-only file with merged file
+                try FileManager.default.removeItem(at: outputURL)
+                try FileManager.default.moveItem(at: finalURL, to: outputURL)
+                let finalSize = (try? FileManager.default.attributesOfItem(atPath: outputURL.path)[.size] as? Int) ?? 0
+                NSLog("Blink: Audio merged! Final: %d bytes", finalSize)
+            } catch {
+                NSLog("Blink: Audio merge failed: %@, keeping video-only", error.localizedDescription)
+            }
+        }
 
         return Output(url: outputURL, originalDuration: durationSecs, editedDuration: editedDuration)
     }
@@ -478,6 +500,82 @@ final class SimpleEditor {
             return ciImage
         }
         return nil
+    }
+
+    // MARK: - Audio merge
+
+    /// Merge audio from the raw recording into the edited video using AVMutableComposition
+    private func mergeAudioIntoVideo(
+        videoURL: URL,
+        rawAudioTrack: AVAssetTrack,
+        timeMappings: [TimeMapping],
+        outputURL: URL
+    ) async throws {
+        let videoAsset = AVURLAsset(url: videoURL)
+        let videoTracks = try await videoAsset.loadTracks(withMediaType: .video)
+        guard let videoTrack = videoTracks.first else { return }
+
+        let composition = AVMutableComposition()
+
+        // Add video track (copy from edited file as-is)
+        let compVideoTrack = composition.addMutableTrack(withMediaType: .video, preferredTrackID: 1)!
+        let videoDuration = try await videoAsset.load(.duration)
+        try compVideoTrack.insertTimeRange(
+            CMTimeRange(start: .zero, duration: videoDuration),
+            of: videoTrack,
+            at: .zero
+        )
+
+        // Add audio track from raw recording
+        let compAudioTrack = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: 2)!
+
+        if timeMappings.isEmpty {
+            // No speed changes — insert audio up to video duration
+            let rawDuration = try await rawAudioTrack.asset!.load(.duration)
+            let insertDuration = min(rawDuration, videoDuration)
+            try compAudioTrack.insertTimeRange(
+                CMTimeRange(start: .zero, duration: insertDuration),
+                of: rawAudioTrack,
+                at: .zero
+            )
+        } else {
+            // With speed changes — insert audio segments matching video speed
+            var insertTime = CMTime.zero
+            for mapping in timeMappings {
+                let segStart = CMTime(seconds: mapping.sourceStart, preferredTimescale: 600)
+                let segEnd = CMTime(seconds: mapping.sourceEnd, preferredTimescale: 600)
+                let segDuration = segEnd - segStart
+                let scaledDuration = CMTime(seconds: mapping.outputDuration, preferredTimescale: 600)
+
+                do {
+                    try compAudioTrack.insertTimeRange(
+                        CMTimeRange(start: segStart, duration: segDuration),
+                        of: rawAudioTrack,
+                        at: insertTime
+                    )
+                    // Scale audio to match video speed
+                    if mapping.speed != 1.0 {
+                        compAudioTrack.scaleTimeRange(
+                            CMTimeRange(start: insertTime, duration: segDuration),
+                            toDuration: scaledDuration
+                        )
+                    }
+                    insertTime = insertTime + scaledDuration
+                } catch {
+                    NSLog("Blink: Audio segment failed: %@", error.localizedDescription)
+                }
+            }
+        }
+
+        // Export merged composition
+        guard let session = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetHighestQuality) else {
+            throw NSError(domain: "Blink", code: 10, userInfo: [NSLocalizedDescriptionKey: "Export session failed"])
+        }
+        session.outputURL = outputURL
+        session.outputFileType = .mp4
+
+        await session.export()
+        if let error = session.error { throw error }
     }
 
     // MARK: - Speed mapping
