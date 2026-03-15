@@ -47,16 +47,13 @@ final class ScreenRecorder: NSObject {
         config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
         config.showsCursor = false
         config.pixelFormat = kCVPixelFormatType_32BGRA
-        // Disable audio in raw capture — it causes writer corruption
-        // System audio is captured separately and merged in post
-        config.capturesAudio = false
+        config.capturesAudio = false // disabled for reliability
 
-        // Remove existing file if present (prevents -12412 error)
+        // Remove existing file to prevent -12412 error
         try? FileManager.default.removeItem(at: outputURL)
 
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mov)
 
-        // Video input
         let videoSettings: [String: Any] = [
             AVVideoCodecKey: AVVideoCodecType.h264,
             AVVideoWidthKey: w,
@@ -77,7 +74,7 @@ final class ScreenRecorder: NSObject {
         )
         pixelBufferAdaptor = adaptor
 
-        // Audio disabled in raw capture for reliability
+        // Audio disabled for recording reliability
 
         assetWriter = writer
         writer.startWriting()
@@ -85,7 +82,7 @@ final class ScreenRecorder: NSObject {
 
         let stream = SCStream(filter: filter, configuration: config, delegate: self)
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: .global(qos: .userInteractive))
-        // Audio stream output disabled for reliability
+        // Audio stream disabled
         self.stream = stream
         try await stream.startCapture()
         isRecording = true
@@ -143,7 +140,7 @@ extension ScreenRecorder: SCStreamOutput {
         case .screen:
             handleVideoSample(sampleBuffer, timestamp: originalTimestamp)
         case .audio:
-            break // Audio disabled
+            break
         @unknown default:
             break
         }

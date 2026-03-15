@@ -77,35 +77,11 @@ final class SimpleEditor {
         // Raw recording has audio — it's preserved when "no edits needed" copies the file
         NSLog("Blink: Audio processing skipped (video-only edit)")
 
-        // 3. Set up writer — output is larger to fit background + padding
-        let padding: CGFloat = 60  // padding around the screen recording
-        let cornerRadius: CGFloat = 16
-        // Round up to multiple of 16 for H.264 compatibility
-        let rawW = Int(CGFloat(width) + padding * 2)
-        let rawH = Int(CGFloat(height) + padding * 2)
-        let outputW = (rawW + 15) / 16 * 16
-        let outputH = (rawH + 15) / 16 * 16
-
-        // Pre-render the background gradient (only once)
-        let backgroundImage = renderBackground(width: outputW, height: outputH)
-        // Pre-render the shadow
-        let shadowImage = renderShadow(
-            contentSize: CGSize(width: width, height: height),
-            padding: padding,
-            cornerRadius: cornerRadius,
-            canvasSize: CGSize(width: outputW, height: outputH)
-        )
-
-        NSLog("Blink: Output with background: %dx%d (padding=%.0f)", outputW, outputH, padding)
-
+        // 3. Set up writer
         let writerSettings: [String: Any] = [
             AVVideoCodecKey: AVVideoCodecType.h264,
-            AVVideoWidthKey: outputW,
-            AVVideoHeightKey: outputH,
-            AVVideoCompressionPropertiesKey: [
-                AVVideoAverageBitRateKey: 10_000_000,
-                AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
-            ] as [String: Any],
+            AVVideoWidthKey: width,
+            AVVideoHeightKey: height,
         ]
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
         let writerInput = AVAssetWriterInput(mediaType: .video, outputSettings: writerSettings)
@@ -115,8 +91,8 @@ final class SimpleEditor {
             assetWriterInput: writerInput,
             sourcePixelBufferAttributes: [
                 kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
-                kCVPixelBufferWidthKey as String: outputW,
-                kCVPixelBufferHeightKey as String: outputH,
+                kCVPixelBufferWidthKey as String: width,
+                kCVPixelBufferHeightKey as String: height,
             ]
         )
         writer.add(writerInput)
@@ -191,25 +167,12 @@ final class SimpleEditor {
                 finalBuffer = withCursor
             }
 
-            // 3. Composite onto background with rounded corners + shadow
-            let composited = compositeOnBackground(
-                frame: finalBuffer,
-                background: backgroundImage,
-                shadow: shadowImage,
-                padding: padding,
-                cornerRadius: cornerRadius,
-                contentSize: naturalSize,
-                canvasSize: CGSize(width: outputW, height: outputH),
-                context: ciContext,
-                adaptor: adaptor
-            )
-
             // Wait for writer to be ready
             while !writerInput.isReadyForMoreMediaData {
                 Thread.sleep(forTimeInterval: 0.01)
             }
 
-            adaptor.append(composited, withPresentationTime: outputTime)
+            adaptor.append(finalBuffer, withPresentationTime: outputTime)
             lastOutputTime = outputTime
             frameCount += 1
         }
@@ -224,30 +187,7 @@ final class SimpleEditor {
 
         let editedDuration = lastOutputTime.seconds
         let fileSize = (try? FileManager.default.attributesOfItem(atPath: outputURL.path)[.size] as? Int) ?? 0
-        NSLog("Blink: Video done! %d frames, %.1fs → %.1fs, %d bytes", frameCount, durationSecs, editedDuration, fileSize)
-
-        // 5. Merge audio from raw recording into the edited video
-        let audioTracks = try await asset.loadTracks(withMediaType: .audio)
-        if let rawAudioTrack = audioTracks.first {
-            NSLog("Blink: Merging audio track...")
-            let finalURL = outputURL.deletingLastPathComponent().appendingPathComponent("final.mp4")
-            do {
-                try await mergeAudioIntoVideo(
-                    videoURL: outputURL,
-                    rawAudioTrack: rawAudioTrack,
-                    micAudioURL: micAudioURL,
-                    timeMappings: hasSpeedChanges ? timeMappings : [],
-                    outputURL: finalURL
-                )
-                // Replace video-only file with merged file
-                try FileManager.default.removeItem(at: outputURL)
-                try FileManager.default.moveItem(at: finalURL, to: outputURL)
-                let finalSize = (try? FileManager.default.attributesOfItem(atPath: outputURL.path)[.size] as? Int) ?? 0
-                NSLog("Blink: Audio merged! Final: %d bytes", finalSize)
-            } catch {
-                NSLog("Blink: Audio merge failed: %@, keeping video-only", error.localizedDescription)
-            }
-        }
+        NSLog("Blink: Done! %d frames, %.1fs → %.1fs, %d bytes", frameCount, durationSecs, editedDuration, fileSize)
 
         return Output(url: outputURL, originalDuration: durationSecs, editedDuration: editedDuration)
     }
@@ -538,219 +478,6 @@ final class SimpleEditor {
             return ciImage
         }
         return nil
-    }
-
-    // MARK: - Background compositing
-
-    /// Render a gradient background (dark, modern — like Screen Studio)
-    private func renderBackground(width: Int, height: Int) -> CIImage {
-        let size = NSSize(width: width, height: height)
-        let image = NSImage(size: size, flipped: false) { rect in
-            // Deep blue-purple gradient
-            let gradient = NSGradient(colors: [
-                NSColor(red: 0.08, green: 0.06, blue: 0.18, alpha: 1),  // deep indigo
-                NSColor(red: 0.15, green: 0.08, blue: 0.25, alpha: 1),  // purple
-                NSColor(red: 0.10, green: 0.12, blue: 0.22, alpha: 1),  // blue-grey
-            ], atLocations: [0, 0.5, 1], colorSpace: .deviceRGB)
-            gradient?.draw(in: rect, angle: -35)
-
-            // Subtle noise texture
-            for _ in 0..<(width * height / 80) {
-                let x = CGFloat.random(in: 0..<CGFloat(width))
-                let y = CGFloat.random(in: 0..<CGFloat(height))
-                NSColor(white: 1.0, alpha: CGFloat.random(in: 0.01...0.03)).setFill()
-                NSBezierPath(ovalIn: NSRect(x: x, y: y, width: 1, height: 1)).fill()
-            }
-            return true
-        }
-
-        guard let tiff = image.tiffRepresentation, let ci = CIImage(data: tiff) else {
-            return CIImage(color: .black).cropped(to: CGRect(x: 0, y: 0, width: width, height: height))
-        }
-        return ci
-    }
-
-    /// Render a soft shadow beneath the content area
-    private func renderShadow(contentSize: CGSize, padding: CGFloat, cornerRadius: CGFloat, canvasSize: CGSize) -> CIImage {
-        let image = NSImage(size: canvasSize, flipped: false) { rect in
-            let shadowRect = NSRect(
-                x: padding - 4, y: padding - 8,
-                width: contentSize.width + 8, height: contentSize.height + 8
-            )
-            let shadowPath = NSBezierPath(roundedRect: shadowRect, xRadius: cornerRadius + 2, yRadius: cornerRadius + 2)
-
-            let shadow = NSShadow()
-            shadow.shadowColor = NSColor(white: 0, alpha: 0.5)
-            shadow.shadowBlurRadius = 30
-            shadow.shadowOffset = NSSize(width: 0, height: -8)
-
-            NSGraphicsContext.saveGraphicsState()
-            shadow.set()
-            NSColor.black.setFill()
-            shadowPath.fill()
-            NSGraphicsContext.restoreGraphicsState()
-
-            // Clear the inner rect so only shadow shows
-            NSColor.clear.setFill()
-            NSBezierPath(roundedRect: NSRect(
-                x: padding, y: padding,
-                width: contentSize.width, height: contentSize.height
-            ), xRadius: cornerRadius, yRadius: cornerRadius).fill()
-            // Note: shadow-only effect — the frame itself goes on top in compositing
-
-            return true
-        }
-
-        guard let tiff = image.tiffRepresentation, let ci = CIImage(data: tiff) else {
-            return CIImage.empty()
-        }
-        return ci
-    }
-
-    /// Composite a video frame onto the background with rounded corners and shadow
-    private func compositeOnBackground(
-        frame: CVPixelBuffer,
-        background: CIImage,
-        shadow: CIImage,
-        padding: CGFloat,
-        cornerRadius: CGFloat,
-        contentSize: CGSize,
-        canvasSize: CGSize,
-        context: CIContext,
-        adaptor: AVAssetWriterInputPixelBufferAdaptor
-    ) -> CVPixelBuffer {
-        let frameImage = CIImage(cvPixelBuffer: frame)
-
-        // Apply rounded corners via a mask
-        let maskRect = CGRect(x: 0, y: 0, width: contentSize.width, height: contentSize.height)
-        let maskImage = NSImage(size: contentSize, flipped: false) { rect in
-            NSColor.white.setFill()
-            NSBezierPath(roundedRect: rect, xRadius: cornerRadius, yRadius: cornerRadius).fill()
-            return true
-        }
-
-        let mask: CIImage
-        if let tiff = maskImage.tiffRepresentation, let ci = CIImage(data: tiff) {
-            mask = ci
-        } else {
-            mask = CIImage(color: .white).cropped(to: maskRect)
-        }
-
-        // Apply mask (rounded corners)
-        let rounded = frameImage.applyingFilter("CIBlendWithMask", parameters: [
-            kCIInputMaskImageKey: mask,
-            kCIInputBackgroundImageKey: CIImage(color: .clear).cropped(to: maskRect)
-        ])
-
-        // Position frame on canvas (centered with padding)
-        let positioned = rounded.transformed(by: CGAffineTransform(translationX: padding, y: padding))
-
-        // Stack: background → shadow → frame
-        let withShadow = shadow.composited(over: background)
-        let final_ = positioned.composited(over: withShadow)
-
-        // Render to output buffer
-        guard let pool = adaptor.pixelBufferPool else { return frame }
-        var outputBuffer: CVPixelBuffer?
-        CVPixelBufferPoolCreatePixelBuffer(nil, pool, &outputBuffer)
-        guard let output = outputBuffer else { return frame }
-
-        let renderRect = CGRect(origin: .zero, size: canvasSize)
-        context.render(final_, to: output, bounds: renderRect, colorSpace: CGColorSpaceCreateDeviceRGB())
-        return output
-    }
-
-    // MARK: - Audio merge
-
-    /// Merge audio from the raw recording into the edited video using AVMutableComposition
-    private func mergeAudioIntoVideo(
-        videoURL: URL,
-        rawAudioTrack: AVAssetTrack,
-        micAudioURL: URL? = nil,
-        timeMappings: [TimeMapping],
-        outputURL: URL
-    ) async throws {
-        let videoAsset = AVURLAsset(url: videoURL)
-        let videoTracks = try await videoAsset.loadTracks(withMediaType: .video)
-        guard let videoTrack = videoTracks.first else { return }
-
-        let composition = AVMutableComposition()
-
-        // Add video track (copy from edited file as-is)
-        let compVideoTrack = composition.addMutableTrack(withMediaType: .video, preferredTrackID: 1)!
-        let videoDuration = try await videoAsset.load(.duration)
-        try compVideoTrack.insertTimeRange(
-            CMTimeRange(start: .zero, duration: videoDuration),
-            of: videoTrack,
-            at: .zero
-        )
-
-        // Add audio track from raw recording
-        let compAudioTrack = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: 2)!
-
-        if timeMappings.isEmpty {
-            // No speed changes — insert audio up to video duration
-            let rawDuration = try await rawAudioTrack.asset!.load(.duration)
-            let insertDuration = min(rawDuration, videoDuration)
-            try compAudioTrack.insertTimeRange(
-                CMTimeRange(start: .zero, duration: insertDuration),
-                of: rawAudioTrack,
-                at: .zero
-            )
-        } else {
-            // With speed changes — insert audio segments matching video speed
-            var insertTime = CMTime.zero
-            for mapping in timeMappings {
-                let segStart = CMTime(seconds: mapping.sourceStart, preferredTimescale: 600)
-                let segEnd = CMTime(seconds: mapping.sourceEnd, preferredTimescale: 600)
-                let segDuration = segEnd - segStart
-                let scaledDuration = CMTime(seconds: mapping.outputDuration, preferredTimescale: 600)
-
-                do {
-                    try compAudioTrack.insertTimeRange(
-                        CMTimeRange(start: segStart, duration: segDuration),
-                        of: rawAudioTrack,
-                        at: insertTime
-                    )
-                    // Scale audio to match video speed
-                    if mapping.speed != 1.0 {
-                        compAudioTrack.scaleTimeRange(
-                            CMTimeRange(start: insertTime, duration: segDuration),
-                            toDuration: scaledDuration
-                        )
-                    }
-                    insertTime = insertTime + scaledDuration
-                } catch {
-                    NSLog("Blink: Audio segment failed: %@", error.localizedDescription)
-                }
-            }
-        }
-
-        // Add mic audio track if available
-        if let micURL = micAudioURL {
-            let micAsset = AVURLAsset(url: micURL)
-            if let micTrack = try? await micAsset.loadTracks(withMediaType: .audio).first {
-                let micDuration = try await micAsset.load(.duration)
-                let compMicTrack = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: 3)!
-                let insertDuration = min(micDuration, videoDuration)
-                try? compMicTrack.insertTimeRange(
-                    CMTimeRange(start: .zero, duration: insertDuration),
-                    of: micTrack,
-                    at: .zero
-                )
-                NSLog("Blink: Mic audio track added (%.1fs)", insertDuration.seconds)
-            }
-        }
-
-        // Export merged composition
-        guard let session = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetHighestQuality) else {
-            throw NSError(domain: "Blink", code: 10, userInfo: [NSLocalizedDescriptionKey: "Export session failed"])
-        }
-        session.outputURL = outputURL
-        session.outputFileType = .mp4
-
-        await session.export()
-        if let error = session.error { throw error }
     }
 
     // MARK: - Speed mapping
