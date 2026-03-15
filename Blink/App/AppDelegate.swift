@@ -31,6 +31,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBar.delegate = self
         menuBar.setup()
 
+        // Request mic permission early so the dialog shows
+        if settings.captureMicrophone {
+            AVCaptureDevice.requestAccess(for: .audio) { granted in
+                NSLog("Blink: Mic permission on launch: %d", granted ? 1 : 0)
+            }
+        }
+
         // Always show the main window on launch
         showMainWindow()
 

@@ -151,16 +151,28 @@ final class MainWindow: NSWindow {
     }
 
     @objc private func requestMicPermission() {
-        AVCaptureDevice.requestAccess(for: .audio) { granted in
-            DispatchQueue.main.async {
-                if granted {
-                    NSLog("Blink: Microphone permission granted")
-                } else {
-                    // Open privacy settings if denied
-                    let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!
-                    NSWorkspace.shared.open(url)
+        NSLog("Blink: Requesting mic permission...")
+        let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        NSLog("Blink: Current mic status: %d", status.rawValue)
+
+        if status == .notDetermined {
+            // This should trigger the system dialog
+            AVCaptureDevice.requestAccess(for: .audio) { granted in
+                NSLog("Blink: Mic permission result: %d", granted ? 1 : 0)
+                if !granted {
+                    DispatchQueue.main.async {
+                        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!
+                        NSWorkspace.shared.open(url)
+                    }
                 }
             }
+        } else if status == .denied || status == .restricted {
+            // Already denied — open settings
+            NSLog("Blink: Mic denied, opening settings")
+            let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!
+            NSWorkspace.shared.open(url)
+        } else {
+            NSLog("Blink: Mic already authorized")
         }
     }
 
