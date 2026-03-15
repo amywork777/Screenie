@@ -51,7 +51,7 @@ final class MainWindow: NSWindow {
         titleLabel.frame = NSRect(x: 30, y: 400, width: 200, height: 40)
         container.addSubview(titleLabel)
 
-        let subtitleLabel = NSTextField(labelWithString: "Screen Recording, Perfected")
+        let subtitleLabel = NSTextField(labelWithString: "Fast Screen Recordings")
         subtitleLabel.font = .systemFont(ofSize: 14)
         subtitleLabel.textColor = .secondaryLabelColor
         subtitleLabel.frame = NSRect(x: 30, y: 375, width: 300, height: 20)
