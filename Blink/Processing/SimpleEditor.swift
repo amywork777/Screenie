@@ -244,105 +244,58 @@ final class SimpleEditor {
         let center: CGPoint
     }
 
-    /// Screen Studio-style zoom: follows cursor continuously with spring physics.
-    /// Zooms in when activity starts, smoothly pans to follow mouse, zooms out during idle.
+    /// Click-only zoom: zooms in on each click, smoothly pans between click positions,
+    /// zooms out when no recent clicks. No mouse-follow — only reacts to clicks.
     private func buildZoomTimeline(clicks: [LoggedEvent], allEvents: [LoggedEvent], duration: TimeInterval) -> [(time: TimeInterval, state: ZoomState)] {
-        let maxZoom: CGFloat = 1.35  // subtle — Screen Studio doesn't zoom too aggressively
-        let zoomInDuration = 0.8    // slow, cinematic zoom in
-        let zoomOutDuration = 1.2   // very slow zoom out for buttery feel
-        let idleBeforeZoomOut = 2.0 // stay zoomed a while after last activity
+        let maxZoom: CGFloat = 1.35
+        let zoomInDuration = 0.6
+        let zoomOutDuration = 1.0
+        let holdAfterClick = 1.5  // stay zoomed this long after each click
 
-        // Build cursor position track from ALL events (moves + clicks)
-        var cursorTrack: [(time: TimeInterval, pos: CGPoint)] = []
-        for event in allEvents {
-            if let x = event.x, let y = event.y {
-                cursorTrack.append((time: event.timestamp, pos: CGPoint(x: x, y: y)))
-            }
-        }
-        guard !cursorTrack.isEmpty else { return [] }
-        cursorTrack.sort { $0.time < $1.time }
+        guard !clicks.isEmpty else { return [] }
 
-        // Find active periods (any mouse/keyboard activity)
-        let activityEvents = allEvents.filter { $0.type == .mouseClick || $0.type == .mouseMove || $0.type == .keyPress }
-        guard !activityEvents.isEmpty else { return [] }
-
-        let firstActivity = activityEvents.first!.timestamp
-        let lastActivity = activityEvents.last!.timestamp
-
-        // Build dense timeline at 30fps
         var timeline: [(time: TimeInterval, state: ZoomState)] = []
         let fps = 30.0
         let step = 1.0 / fps
         var t = 0.0
 
-        // Spring physics state for camera center
-        var camX: CGFloat = cursorTrack[0].pos.x
-        var camY: CGFloat = cursorTrack[0].pos.y
+        // Spring physics for camera center (pans between click positions)
+        let firstClick = clicks[0]
+        var camX: CGFloat = firstClick.x ?? 0
+        var camY: CGFloat = firstClick.y ?? 0
         var velX: CGFloat = 0
         var velY: CGFloat = 0
+        let stiffness: CGFloat = 60
+        let damping: CGFloat = 16
 
-        // Spring constants — tuned for buttery Screen Studio feel
-        // Lower stiffness = slower, more cinematic following
-        // Damping ratio ~1.0 = critically damped (no bounce, just smooth settling)
-        let stiffness: CGFloat = 60    // gentle pull toward cursor
-        let damping: CGFloat = 16      // critically damped (2 * sqrt(60) ≈ 15.5)
-
-        // Current zoom level with smooth interpolation
         var currentZoom: CGFloat = 1.0
 
         while t <= duration {
-            // Find cursor position at this time (most recent known position)
-            let cursorPos: CGPoint
-            if let latest = cursorTrack.last(where: { $0.time <= t }) {
-                cursorPos = latest.pos
-            } else {
-                cursorPos = CGPoint(x: camX, y: camY)
-            }
+            // Find the most recent click
+            let recentClick = clicks.last(where: { $0.timestamp <= t })
+            let timeSinceLastClick = recentClick.map { t - $0.timestamp } ?? Double.infinity
 
-            // Determine target zoom level
-            let targetZoom: CGFloat
-            if t < firstActivity {
-                targetZoom = 1.0
-            } else if t > lastActivity + idleBeforeZoomOut {
-                targetZoom = 1.0
-            } else {
-                // Check if there's been recent activity (within idleBeforeZoomOut)
-                let recentActivity = activityEvents.contains(where: {
-                    $0.timestamp <= t && t - $0.timestamp < idleBeforeZoomOut
-                })
-                targetZoom = recentActivity ? maxZoom : 1.0
-            }
+            // Target zoom: zoomed in if a click happened recently
+            let targetZoom: CGFloat = timeSinceLastClick < holdAfterClick ? maxZoom : 1.0
 
-            // Exponential ease toward target zoom — never linear, always smooth
-            let tau: CGFloat  // time constant (lower = faster)
-            if targetZoom > currentZoom {
-                tau = CGFloat(zoomInDuration) / 3.0
-            } else {
-                tau = CGFloat(zoomOutDuration) / 3.0
-            }
+            // Smooth zoom easing
+            let tau: CGFloat = targetZoom > currentZoom
+                ? CGFloat(zoomInDuration) / 3.0
+                : CGFloat(zoomOutDuration) / 3.0
             let alpha = 1.0 - exp(-CGFloat(step) / tau)
             currentZoom += (targetZoom - currentZoom) * alpha
 
-            // Spring physics for camera position (only when zoomed in)
-            if currentZoom > 1.05 {
+            // Spring physics: pan camera toward most recent click position
+            if let click = recentClick, let cx = click.x, let cy = click.y {
                 let dt = CGFloat(step)
-
-                // Spring force toward cursor
-                let dx = cursorPos.x - camX
-                let dy = cursorPos.y - camY
-                let forceX = stiffness * dx - damping * velX
-                let forceY = stiffness * dy - damping * velY
-
-                velX += forceX * dt
-                velY += forceY * dt
+                let dx = cx - camX
+                let dy = cy - camY
+                let fx = stiffness * dx - damping * velX
+                let fy = stiffness * dy - damping * velY
+                velX += fx * dt
+                velY += fy * dt
                 camX += velX * dt
                 camY += velY * dt
-            } else {
-                // When zoomed out, snap to cursor (no lag needed)
-                camX = cursorPos.x
-                camY = cursorPos.y
-                velX = 0
-                velY = 0
             }
 
             timeline.append((time: t, state: ZoomState(level: currentZoom, center: CGPoint(x: camX, y: camY))))
