@@ -1,0 +1,21 @@
+# Xcode
+build/
+*.xcworkspace
+xcuserdata/
+*.xcuserstate
+*.xcbkptlist
+DerivedData/
+*.moved-aside
+*.pbxuser
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Previews
+PreviewReplacement/
