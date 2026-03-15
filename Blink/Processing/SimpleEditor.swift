@@ -86,6 +86,9 @@ final class SimpleEditor {
 
         let ciContext = CIContext()
 
+        // Precompute zoom timeline for smooth panning
+        let zoomTimeline = hasZoom ? buildZoomTimeline(clicks: clicks, allEvents: events, duration: durationSecs) : []
+
         while let sampleBuffer = readerOutput.copyNextSampleBuffer() {
             let sourceTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
 
@@ -111,10 +114,10 @@ final class SimpleEditor {
             // Apply zoom if needed
             let finalBuffer: CVPixelBuffer
             if hasZoom {
+                let zState = zoomAt(time: relativeTime, timeline: zoomTimeline)
                 finalBuffer = applyZoom(
                     to: pixelBuffer,
-                    at: relativeTime,
-                    clicks: clicks,
+                    zoom: zState,
                     size: naturalSize,
                     context: ciContext,
                     adaptor: adaptor
@@ -152,13 +155,11 @@ final class SimpleEditor {
 
     private func applyZoom(
         to pixelBuffer: CVPixelBuffer,
-        at time: TimeInterval,
-        clicks: [LoggedEvent],
+        zoom: ZoomState,
         size: CGSize,
         context: CIContext,
         adaptor: AVAssetWriterInputPixelBufferAdaptor
     ) -> CVPixelBuffer? {
-        let zoom = zoomAt(time: time, clicks: clicks)
         guard zoom.level > 1.01 else { return nil } // No zoom needed
 
         let inputImage = CIImage(cvPixelBuffer: pixelBuffer)
@@ -198,47 +199,88 @@ final class SimpleEditor {
         let center: CGPoint
     }
 
-    private func zoomAt(time: TimeInterval, clicks: [LoggedEvent]) -> ZoomState {
+    /// Precompute zoom keyframes for the entire recording so we can smoothly
+    /// interpolate between them (both zoom level AND center position).
+    private func buildZoomTimeline(clicks: [LoggedEvent], allEvents: [LoggedEvent], duration: TimeInterval) -> [(time: TimeInterval, state: ZoomState)] {
         let maxZoom: CGFloat = 1.5
-        let transitionIn = 0.3
-        let hold = 1.2
-        let transitionOut = 0.3
+        let fadeIn = 0.3
+        let fadeOut = 0.5
+        let holdAfterLastClick = 1.0
 
-        var bestZoom: CGFloat = 1.0
-        var bestCenter = CGPoint.zero
+        guard !clicks.isEmpty else { return [] }
 
-        for click in clicks {
-            guard let x = click.x, let y = click.y else { continue }
-            let dt = time - click.timestamp
+        // Build a dense timeline at 30fps
+        var timeline: [(time: TimeInterval, state: ZoomState)] = []
+        let step = 1.0 / 30.0
+        var t = 0.0
 
+        // Track current smooth center using exponential smoothing
+        var smoothCenter = CGPoint(x: clicks[0].x ?? 0, y: clicks[0].y ?? 0)
+        let smoothing: CGFloat = 0.15 // lower = smoother panning
+
+        while t <= duration {
+            // Find the most recent click before or at this time
+            let recentClick = clicks.last(where: { $0.timestamp <= t })
+            // Find the next click after this time
+            let nextClick = clicks.first(where: { $0.timestamp > t })
+            // Time since last click
+            let timeSinceLast = recentClick.map { t - $0.timestamp } ?? Double.infinity
+            // Time until next click
+            let timeUntilNext = nextClick.map { $0.timestamp - t } ?? Double.infinity
+
+            // Determine target center (most recent click position)
+            if let click = recentClick, let x = click.x, let y = click.y {
+                let target = CGPoint(x: x, y: y)
+                // Smooth pan toward target
+                smoothCenter.x += (target.x - smoothCenter.x) * smoothing
+                smoothCenter.y += (target.y - smoothCenter.y) * smoothing
+            }
+
+            // Determine zoom level
             let zoom: CGFloat
-            if dt < 0 {
-                // Before click
-                continue
-            } else if dt < transitionIn {
-                // Easing in
-                let t = CGFloat(dt / transitionIn)
-                let eased = t * t * (3 - 2 * t) // smoothstep
-                zoom = 1.0 + (maxZoom - 1.0) * eased
-            } else if dt < transitionIn + hold {
-                // Holding
-                zoom = maxZoom
-            } else if dt < transitionIn + hold + transitionOut {
-                // Easing out
-                let t = CGFloat((dt - transitionIn - hold) / transitionOut)
-                let eased = t * t * (3 - 2 * t)
-                zoom = maxZoom - (maxZoom - 1.0) * eased
+            let firstClickTime = clicks[0].timestamp
+            let lastClickTime = clicks.last!.timestamp
+
+            if t < firstClickTime {
+                // Before first click — ease in as we approach
+                if firstClickTime - t < fadeIn {
+                    let progress = CGFloat((fadeIn - (firstClickTime - t)) / fadeIn)
+                    zoom = 1.0 + (maxZoom - 1.0) * smoothstep(progress)
+                } else {
+                    zoom = 1.0
+                }
+            } else if t > lastClickTime + holdAfterLastClick {
+                // After last click + hold — ease out
+                let elapsed = t - (lastClickTime + holdAfterLastClick)
+                if elapsed < fadeOut {
+                    let progress = CGFloat(elapsed / fadeOut)
+                    zoom = maxZoom - (maxZoom - 1.0) * smoothstep(progress)
+                } else {
+                    zoom = 1.0
+                }
             } else {
-                continue
+                // During clicks — stay zoomed
+                zoom = maxZoom
             }
 
-            if zoom > bestZoom {
-                bestZoom = zoom
-                bestCenter = CGPoint(x: x, y: y)
-            }
+            timeline.append((time: t, state: ZoomState(level: zoom, center: smoothCenter)))
+            t += step
         }
 
-        return ZoomState(level: bestZoom, center: bestCenter)
+        return timeline
+    }
+
+    private func zoomAt(time: TimeInterval, timeline: [(time: TimeInterval, state: ZoomState)]) -> ZoomState {
+        guard !timeline.isEmpty else { return ZoomState(level: 1.0, center: .zero) }
+
+        // Binary search for closest frame
+        let idx = timeline.lastIndex(where: { $0.time <= time }) ?? 0
+        return timeline[idx].state
+    }
+
+    private func smoothstep(_ t: CGFloat) -> CGFloat {
+        let clamped = max(0, min(1, t))
+        return clamped * clamped * (3 - 2 * clamped)
     }
 
     // MARK: - Speed mapping

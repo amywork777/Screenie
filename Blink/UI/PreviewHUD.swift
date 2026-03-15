@@ -130,8 +130,8 @@ final class PreviewHUD: NSPanel {
         container.addTrackingArea(trackingArea)
     }
 
-    private func makeButton(title: String, x: Int, y: Int, width: Int, action: Selector) -> NSButton {
-        let btn = NSButton(frame: NSRect(x: x, y: y, width: width, height: 44))
+    private func makeButton(title: String, x: Int, y: Int, width: Int, action: Selector) -> FirstMouseButton {
+        let btn = FirstMouseButton(frame: NSRect(x: x, y: y, width: width, height: 44))
         btn.title = title
         btn.isBordered = false
         btn.font = .systemFont(ofSize: 12)
@@ -220,4 +220,14 @@ final class PreviewHUD: NSPanel {
             self.orderOut(nil)
         })
     }
+}
+
+// Button subclass that accepts clicks even when window isn't key
+final class FirstMouseButton: NSButton {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
+// View subclass that accepts clicks even when window isn't key
+final class FirstMouseView: NSView {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
