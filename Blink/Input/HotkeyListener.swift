@@ -1,6 +1,7 @@
 // Blink/Input/HotkeyListener.swift
 import Foundation
-import CoreGraphics
+import AppKit
+import ApplicationServices
 
 protocol HotkeyListenerDelegate: AnyObject {
     func hotkeyListenerDidRequestStart()
@@ -13,60 +14,74 @@ final class HotkeyListener {
     private let state = InputState()
     private var holdTimer: DispatchWorkItem?
     private var doubleTapTimer: DispatchWorkItem?
-    private var eventTap: CFMachPort?
+    private var globalMonitor: Any?
+    private var localMonitor: Any?
 
     private let holdThreshold: TimeInterval = 0.3
     private let doubleTapWindow: TimeInterval = 0.4
-    private let rightOptionKeyCode: UInt16 = 0x3D
+    private let rightOptionKeyCode: UInt16 = 61 // 0x3D
+
+    static var isAccessibilityGranted: Bool {
+        AXIsProcessTrusted()
+    }
+
+    static func promptAccessibility() {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
+        AXIsProcessTrustedWithOptions(options)
+    }
 
     func start() -> Bool {
-        let mask: CGEventMask = (1 << CGEventType.flagsChanged.rawValue)
-
-        guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .headInsertEventTap,
-            options: .listenOnly,
-            eventsOfInterest: mask,
-            callback: { _, _, event, refcon in
-                let listener = Unmanaged<HotkeyListener>.fromOpaque(refcon!).takeUnretainedValue()
-                listener.handleEvent(event)
-                return Unmanaged.passUnretained(event)
-            },
-            userInfo: Unmanaged.passUnretained(self).toOpaque()
-        ) else {
+        // Check accessibility
+        if !HotkeyListener.isAccessibilityGranted {
+            NSLog("Blink: Accessibility not granted, prompting...")
+            HotkeyListener.promptAccessibility()
             return false
         }
 
-        eventTap = tap
-        let runLoopSource = CFMachPortCreateRunLoopSource(nil, tap, 0)
-        CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
-        CGEvent.tapEnable(tap: tap, enable: true)
-        return true
+        // Use NSEvent global monitor for flagsChanged events
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            self?.handleFlagsChanged(event)
+        }
+
+        // Also monitor when our own app is active
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            self?.handleFlagsChanged(event)
+            return event
+        }
+
+        NSLog("Blink: Event monitors installed")
+        return globalMonitor != nil
     }
 
     func stop() {
-        if let tap = eventTap {
-            CGEvent.tapEnable(tap: tap, enable: false)
-            eventTap = nil
+        if let monitor = globalMonitor {
+            NSEvent.removeMonitor(monitor)
+            globalMonitor = nil
+        }
+        if let monitor = localMonitor {
+            NSEvent.removeMonitor(monitor)
+            localMonitor = nil
         }
         holdTimer?.cancel()
         doubleTapTimer?.cancel()
     }
 
-    private func handleEvent(_ event: CGEvent) {
-        let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+    private func handleFlagsChanged(_ event: NSEvent) {
+        let keyCode = event.keyCode
+
+        // Debug: log all modifier key events
+        NSLog("Blink: flagsChanged keyCode=%d (0x%02X) flags=0x%lX", keyCode, keyCode, event.modifierFlags.rawValue)
+
         guard keyCode == rightOptionKeyCode else { return }
 
-        let flags = event.flags
-        let isDown = flags.contains(.maskAlternate)
+        let isDown = event.modifierFlags.contains(.option)
 
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            if isDown {
-                self.onKeyDown()
-            } else {
-                self.onKeyUp()
-            }
+        NSLog("Blink: Right Option %@", isDown ? "DOWN" : "UP")
+
+        if isDown {
+            onKeyDown()
+        } else {
+            onKeyUp()
         }
     }
 
@@ -103,8 +118,10 @@ final class HotkeyListener {
     private func dispatchAction(_ action: InputAction?) {
         switch action {
         case .startRecording:
+            NSLog("Blink: >>> START RECORDING <<<")
             delegate?.hotkeyListenerDidRequestStart()
         case .stopRecording:
+            NSLog("Blink: >>> STOP RECORDING <<<")
             delegate?.hotkeyListenerDidRequestStop()
         case nil:
             break

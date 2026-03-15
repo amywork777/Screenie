@@ -132,6 +132,9 @@ final class MainWindow: NSWindow {
     }
 
     @objc private func openAccessibilitySettings() {
+        // Prompt the system accessibility dialog
+        HotkeyListener.promptAccessibility()
+        // Also open System Settings
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
         NSWorkspace.shared.open(url)
     }
