@@ -162,18 +162,20 @@ final class PreviewHUD: NSPanel {
     }
 
     @objc private func openAction() {
-        // Try archive first, fall back to clipboard version
+        NSLog("Blink: Open button clicked")
         let url = archiveURL ?? clipboardURL
-        guard let url else { return }
-        if FileManager.default.fileExists(atPath: url.path) {
-            NSWorkspace.shared.activateFileViewerSelecting([url])
-        } else if let fallback = clipboardURL, FileManager.default.fileExists(atPath: fallback.path) {
-            NSWorkspace.shared.activateFileViewerSelecting([fallback])
+        guard let url else {
+            NSLog("Blink: No URL to open")
+            return
         }
+        NSLog("Blink: Opening in Finder: %@", url.path)
+        // Open the file directly in the default video player
+        NSWorkspace.shared.open(url)
         dismiss()
     }
 
     @objc private func discardAction() {
+        NSLog("Blink: Discard button clicked")
         if let cb = clipboardURL, let ar = archiveURL {
             hudDelegate?.previewHUDDidDiscard(clipboardURL: cb, archiveURL: ar)
         }
@@ -181,10 +183,10 @@ final class PreviewHUD: NSPanel {
     }
 
     @objc private func previewVideo() {
-        // Open in default video player
-        let url = clipboardURL ?? archiveURL
+        NSLog("Blink: Thumbnail clicked")
+        let url = archiveURL ?? clipboardURL
         guard let url else { return }
-        NSLog("Blink: Opening preview: %@", url.path)
+        NSLog("Blink: Opening video: %@", url.path)
         NSWorkspace.shared.open(url)
     }
 
