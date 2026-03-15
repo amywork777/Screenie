@@ -159,6 +159,7 @@
 				B10000000000000000000106 /* InputStateTests.swift */,
 				B1000000000000000000010D /* ActivityAnalyzerTests.swift */,
 				B1000000000000000000010F /* SpeedMapperTests.swift */,
+				B10000000000000000000113 /* ZoomEngineTests.swift */,
 			);
 			path = BlinkTests;
 			sourceTree = "<group>";
@@ -263,6 +264,7 @@
 				B1000000000000000000000A /* RecordingSession.swift in Sources */,
 				B1000000000000000000000B /* ActivityAnalyzer.swift in Sources */,
 				B1000000000000000000000E /* SpeedMapper.swift in Sources */,
+				B10000000000000000000110 /* ZoomEngine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -274,6 +276,7 @@
 				B10000000000000000000005 /* InputStateTests.swift in Sources */,
 				B1000000000000000000000C /* ActivityAnalyzerTests.swift in Sources */,
 				B1000000000000000000000F /* SpeedMapperTests.swift in Sources */,
+				B10000000000000000000112 /* ZoomEngineTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
