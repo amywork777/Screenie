@@ -9,10 +9,14 @@ final class ScreenRecorder: NSObject {
     private var videoInput: AVAssetWriterInput?
     private var audioInput: AVAssetWriterInput?
     private var isRecording = false
+    private var sessionStarted = false
     private var outputURL: URL?
+    private var frameCount = 0
 
     func start(outputURL: URL, captureAudio: Bool, captureMicrophone: Bool) async throws {
         self.outputURL = outputURL
+        sessionStarted = false
+        frameCount = 0
 
         let content = try await SCShareableContent.current
         let mouseLocation = NSEvent.mouseLocation
@@ -24,41 +28,26 @@ final class ScreenRecorder: NSObject {
             return frame.contains(mouseLocation)
         } ?? content.displays.first!
 
+        NSLog("Blink: Capturing display %dx%d", display.width, display.height)
+
         let filter = SCContentFilter(display: display, excludingWindows: [])
         let config = SCStreamConfiguration()
         config.width = display.width
         config.height = display.height
-        config.minimumFrameInterval = CMTime(value: 1, timescale: 60)
+        config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
         config.showsCursor = true
         config.capturesAudio = captureAudio
 
-        if captureMicrophone {
-            AVCaptureDevice.requestAccess(for: .audio) { _ in }
-        }
-
+        // Use nil outputSettings to let AVAssetWriter accept the native format
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mov)
 
-        let videoSettings: [String: Any] = [
-            AVVideoCodecKey: AVVideoCodecType.h264,
-            AVVideoWidthKey: display.width,
-            AVVideoHeightKey: display.height,
-        ]
-        let vInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
+        let vInput = AVAssetWriterInput(mediaType: .video, outputSettings: nil)
         vInput.expectsMediaDataInRealTime = true
         writer.add(vInput)
         videoInput = vInput
 
         if captureAudio {
-            let audioSettings: [String: Any] = [
-                AVFormatIDKey: kAudioFormatLinearPCM,
-                AVSampleRateKey: 48000,
-                AVNumberOfChannelsKey: 2,
-                AVLinearPCMBitDepthKey: 16,
-                AVLinearPCMIsBigEndianKey: false,
-                AVLinearPCMIsFloatKey: false,
-                AVLinearPCMIsNonInterleaved: false,
-            ]
-            let aInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
+            let aInput = AVAssetWriterInput(mediaType: .audio, outputSettings: nil)
             aInput.expectsMediaDataInRealTime = true
             writer.add(aInput)
             audioInput = aInput
@@ -66,7 +55,7 @@ final class ScreenRecorder: NSObject {
 
         assetWriter = writer
         writer.startWriting()
-        writer.startSession(atSourceTime: .zero)
+        // Don't start session yet — we'll start it with the first sample buffer's timestamp
 
         let stream = SCStream(filter: filter, configuration: config, delegate: self)
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: .global(qos: .userInteractive))
@@ -76,11 +65,14 @@ final class ScreenRecorder: NSObject {
         self.stream = stream
         try await stream.startCapture()
         isRecording = true
+        NSLog("Blink: SCStream capture started")
     }
 
     func stop() async -> URL? {
         guard isRecording else { return nil }
         isRecording = false
+
+        NSLog("Blink: Stopping capture, %d frames written", frameCount)
 
         if let stream {
             try? await stream.stopCapture()
@@ -90,9 +82,22 @@ final class ScreenRecorder: NSObject {
         videoInput?.markAsFinished()
         audioInput?.markAsFinished()
 
-        await withCheckedContinuation { continuation in
-            assetWriter?.finishWriting {
-                continuation.resume()
+        if let writer = assetWriter, writer.status == .writing {
+            await withCheckedContinuation { continuation in
+                writer.finishWriting {
+                    NSLog("Blink: AVAssetWriter finished, status=%d", writer.status.rawValue)
+                    continuation.resume()
+                }
+            }
+        }
+
+        // Verify the file was actually written
+        if let url = outputURL {
+            let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? 0
+            NSLog("Blink: Output file size: %d bytes at %@", size, url.path)
+            if size == 0 {
+                NSLog("Blink: WARNING — output file is empty!")
+                return nil
             }
         }
 
@@ -110,10 +115,21 @@ extension ScreenRecorder: SCStreamOutput {
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
         guard isRecording, CMSampleBufferDataIsReady(sampleBuffer) else { return }
 
+        guard let writer = assetWriter, writer.status == .writing else { return }
+
+        // Start session with first sample buffer's timestamp
+        if !sessionStarted {
+            let timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+            writer.startSession(atSourceTime: timestamp)
+            sessionStarted = true
+            NSLog("Blink: Session started at timestamp %.3f", timestamp.seconds)
+        }
+
         switch type {
         case .screen:
             if let videoInput, videoInput.isReadyForMoreMediaData {
                 videoInput.append(sampleBuffer)
+                frameCount += 1
             }
         case .audio:
             if let audioInput, audioInput.isReadyForMoreMediaData {
