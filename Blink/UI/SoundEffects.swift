@@ -1,83 +1,70 @@
 import AVFoundation
 
-/// Synthesized sound effects manager for Blink recording and UI feedback
-class SoundEffects {
+/// Synthesized sound effects for recording start/stop feedback
+final class SoundEffects {
     static let shared = SoundEffects()
 
-    private var audioEngine: AVAudioEngine?
-    private var audioSession: AVAudioSession
-
-    init() {
-        audioSession = AVAudioSession.sharedInstance()
-        setupAudio()
+    /// Soft ascending two-tone — recording started
+    func playStart() {
+        playTone(frequencies: [880, 1320], durations: [0.06, 0.08], volume: 0.15)
     }
 
-    private func setupAudio() {
-        do {
-            try audioSession.setCategory(.default, options: .duckOthers)
-            try audioSession.setActive(true)
-            audioEngine = AVAudioEngine()
-        } catch {
-            print("Failed to setup audio session: \(error)")
-        }
+    /// Soft descending two-tone — recording stopped
+    func playStop() {
+        playTone(frequencies: [1320, 880], durations: [0.06, 0.08], volume: 0.15)
     }
 
-    /// Play a short beep sound for recording start
-    func playRecordingStartSound() {
-        playTone(frequency: 800, duration: 0.1)
-    }
+    private func playTone(frequencies: [Double], durations: [Double], volume: Float) {
+        DispatchQueue.global(qos: .userInteractive).async {
+            let sampleRate: Double = 44100
+            var samples: [Float] = []
 
-    /// Play a short beep sound for recording stop
-    func playRecordingStopSound() {
-        playTone(frequency: 600, duration: 0.15)
-    }
+            for (freq, dur) in zip(frequencies, durations) {
+                let count = Int(sampleRate * dur)
+                for i in 0..<count {
+                    let t = Double(i) / sampleRate
+                    let progress = Float(i) / Float(count)
+                    let envelope: Float
+                    if progress < 0.1 {
+                        envelope = progress / 0.1
+                    } else if progress > 0.7 {
+                        envelope = (1.0 - progress) / 0.3
+                    } else {
+                        envelope = 1.0
+                    }
+                    let sample = Float(sin(2.0 * .pi * freq * t)) * envelope * volume
+                    samples.append(sample)
+                }
+                let gapSamples = Int(sampleRate * 0.015)
+                samples.append(contentsOf: [Float](repeating: 0, count: gapSamples))
+            }
 
-    /// Play a UI feedback click sound
-    func playClickSound() {
-        playTone(frequency: 1000, duration: 0.05)
-    }
+            let engine = AVAudioEngine()
+            let player = AVAudioPlayerNode()
+            engine.attach(player)
 
-    private func playTone(frequency: Float, duration: TimeInterval) {
-        guard let audioEngine = audioEngine else { return }
+            let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
+            engine.connect(player, to: engine.mainMixerNode, format: format)
 
-        let sampleRate = audioEngine.outputNode.outputFormat(forBus: 0)?.sampleRate ?? 44100
-        let sampleCount = Int(Float(sampleRate) * Float(duration))
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count)) else { return }
+            buffer.frameLength = AVAudioFrameCount(samples.count)
 
-        var audioBuffer = [Float](repeating: 0, count: sampleCount)
-        let amplitude: Float = 0.3
-
-        for i in 0..<sampleCount {
-            let time = Float(i) / Float(sampleRate)
-            let sine = sin(2.0 * .pi * frequency * time)
-            audioBuffer[i] = sine * amplitude
-        }
-
-        // Create envelope for smooth fade-in/fade-out
-        let fadeTime = Int(Float(sampleRate) * 0.01)
-        for i in 0..<fadeTime {
-            let fade = Float(i) / Float(fadeTime)
-            audioBuffer[i] *= fade
-            audioBuffer[sampleCount - 1 - i] *= fade
-        }
-
-        if let avAudioBuffer = AVAudioPCMBuffer(
-            pcmFormat: audioEngine.outputNode.outputFormat(forBus: 0)\!,
-            frameCapacity: AVAudioFrameCount(sampleCount)
-        ) {
-            avAudioBuffer.frameLength = AVAudioFrameCount(sampleCount)
-            for i in 0..<sampleCount {
-                avAudioBuffer.floatChannelData?[0][i] = audioBuffer[i]
+            if let channelData = buffer.floatChannelData?[0] {
+                for i in 0..<samples.count {
+                    channelData[i] = samples[i]
+                }
             }
 
             do {
-                try audioEngine.start()
-                let mixer = audioEngine.mainMixerNode
-                audioEngine.connect(audioEngine.outputNode, to: mixer, format: nil)
-
-                // Simple playback using system sound for simplicity
-                AudioServicesPlayAlertSound(SystemSoundID(1000 + UInt32(frequency)))
+                try engine.start()
+                player.play()
+                player.scheduleBuffer(buffer) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        engine.stop()
+                    }
+                }
             } catch {
-                print("Failed to play tone: \(error)")
+                NSLog("Blink: Sound failed: %@", error.localizedDescription)
             }
         }
     }
