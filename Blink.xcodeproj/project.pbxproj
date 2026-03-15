@@ -29,6 +29,7 @@
 		B1000000000000000000011A /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000011B /* MenuBarController.swift */; };
 		B1000000000000000000011C /* OnboardingWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000011D /* OnboardingWindow.swift */; };
 		B1000000000000000000011E /* RecordingIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000011F /* RecordingIndicator.swift */; };
+		B10000000000000000000120 /* PreviewHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000121 /* PreviewHUD.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -58,6 +59,7 @@
 		B1000000000000000000011B /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
 		B1000000000000000000011D /* OnboardingWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWindow.swift; sourceTree = "<group>"; };
 		B1000000000000000000011F /* RecordingIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingIndicator.swift; sourceTree = "<group>"; };
+		B10000000000000000000121 /* PreviewHUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewHUD.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -147,6 +149,7 @@
 				B1000000000000000000011B /* MenuBarController.swift */,
 				B1000000000000000000011D /* OnboardingWindow.swift */,
 				B1000000000000000000011F /* RecordingIndicator.swift */,
+				B10000000000000000000121 /* PreviewHUD.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -288,6 +291,7 @@
 				B1000000000000000000011A /* MenuBarController.swift in Sources */,
 				B1000000000000000000011C /* OnboardingWindow.swift in Sources */,
 				B1000000000000000000011E /* RecordingIndicator.swift in Sources */,
+				B10000000000000000000120 /* PreviewHUD.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
