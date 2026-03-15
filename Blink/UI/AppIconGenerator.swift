@@ -1,84 +1,80 @@
 import AppKit
 
-/// Generates Blink's app icon and menu bar icon programmatically
-/// Design: minimal dark icon with a stylized blinking eye + red recording pupil
+/// Generates Screenie's app icon and menu bar icon programmatically
+/// Design: minimal dark icon with a stylized screen/monitor + red recording dot
 struct AppIconGenerator {
 
     /// Generate the main app icon at the given size
     static func appIcon(size: CGFloat) -> NSImage {
         NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
-            // Background — deep charcoal with subtle gradient
+            // Background — deep charcoal gradient
             let bgPath = NSBezierPath(roundedRect: rect, xRadius: size * 0.22, yRadius: size * 0.22)
             let gradient = NSGradient(
-                starting: NSColor(red: 0.10, green: 0.10, blue: 0.12, alpha: 1),
-                ending: NSColor(red: 0.06, green: 0.06, blue: 0.08, alpha: 1)
+                starting: NSColor(red: 0.10, green: 0.10, blue: 0.14, alpha: 1),
+                ending: NSColor(red: 0.05, green: 0.05, blue: 0.09, alpha: 1)
             )
             gradient?.draw(in: bgPath, angle: -45)
-
-            // Subtle inner glow
-            let insetRect = rect.insetBy(dx: size * 0.02, dy: size * 0.02)
-            let innerPath = NSBezierPath(roundedRect: insetRect, xRadius: size * 0.20, yRadius: size * 0.20)
-            NSColor(white: 1.0, alpha: 0.03).setStroke()
-            innerPath.lineWidth = size * 0.01
-            innerPath.stroke()
 
             let cx = size / 2
             let cy = size / 2
 
-            // Eye shape — two mirrored curves forming an almond/lens shape
-            let eyeW = size * 0.52
-            let eyeH = size * 0.22
-            let eyePath = NSBezierPath()
-
-            // Top lid curve
-            eyePath.move(to: NSPoint(x: cx - eyeW / 2, y: cy))
-            eyePath.curve(
-                to: NSPoint(x: cx + eyeW / 2, y: cy),
-                controlPoint1: NSPoint(x: cx - eyeW * 0.15, y: cy + eyeH),
-                controlPoint2: NSPoint(x: cx + eyeW * 0.15, y: cy + eyeH)
+            // Screen/monitor shape — rounded rectangle
+            let screenW = size * 0.52
+            let screenH = size * 0.36
+            let screenRect = NSRect(
+                x: cx - screenW / 2,
+                y: cy - screenH / 2 + size * 0.04,
+                width: screenW,
+                height: screenH
             )
-            // Bottom lid curve
-            eyePath.curve(
-                to: NSPoint(x: cx - eyeW / 2, y: cy),
-                controlPoint1: NSPoint(x: cx + eyeW * 0.15, y: cy - eyeH),
-                controlPoint2: NSPoint(x: cx - eyeW * 0.15, y: cy - eyeH)
+            let screenPath = NSBezierPath(roundedRect: screenRect, xRadius: size * 0.04, yRadius: size * 0.04)
+
+            // Screen border — soft white
+            NSColor(white: 0.85, alpha: 0.9).setStroke()
+            screenPath.lineWidth = size * 0.02
+            screenPath.stroke()
+
+            // Screen fill — subtle dark gradient
+            let screenGradient = NSGradient(
+                starting: NSColor(white: 0.18, alpha: 1),
+                ending: NSColor(white: 0.12, alpha: 1)
             )
+            screenGradient?.draw(in: screenPath, angle: -90)
 
-            // Eye outline — soft white
-            NSColor(white: 0.92, alpha: 0.9).setStroke()
-            eyePath.lineWidth = size * 0.025
-            eyePath.lineCapStyle = .round
-            eyePath.stroke()
+            // Stand/base — small line below screen
+            let standPath = NSBezierPath()
+            standPath.move(to: NSPoint(x: cx, y: screenRect.minY))
+            standPath.line(to: NSPoint(x: cx, y: screenRect.minY - size * 0.06))
+            NSColor(white: 0.7, alpha: 0.7).setStroke()
+            standPath.lineWidth = size * 0.018
+            standPath.stroke()
 
-            // Pupil — recording red dot
-            let pupilR = size * 0.085
-            let pupilRect = NSRect(x: cx - pupilR, y: cy - pupilR, width: pupilR * 2, height: pupilR * 2)
-            let pupilPath = NSBezierPath(ovalIn: pupilRect)
+            // Base
+            let baseW = size * 0.14
+            let baseY = screenRect.minY - size * 0.07
+            let basePath = NSBezierPath()
+            basePath.move(to: NSPoint(x: cx - baseW / 2, y: baseY))
+            basePath.line(to: NSPoint(x: cx + baseW / 2, y: baseY))
+            basePath.lineWidth = size * 0.02
+            basePath.lineCapStyle = .round
+            basePath.stroke()
 
-            // Red gradient for depth
+            // Red recording dot — top right of screen
+            let dotR = size * 0.055
+            let dotX = screenRect.maxX - size * 0.07
+            let dotY = screenRect.maxY - size * 0.07
+            let dotRect = NSRect(x: dotX - dotR, y: dotY - dotR, width: dotR * 2, height: dotR * 2)
             let redGradient = NSGradient(
-                starting: NSColor(red: 1.0, green: 0.25, blue: 0.25, alpha: 1),
-                ending: NSColor(red: 0.85, green: 0.1, blue: 0.1, alpha: 1)
+                starting: NSColor(red: 1.0, green: 0.3, blue: 0.3, alpha: 1),
+                ending: NSColor(red: 0.9, green: 0.1, blue: 0.1, alpha: 1)
             )
-            redGradient?.draw(in: pupilPath, angle: -45)
+            let dotPath = NSBezierPath(ovalIn: dotRect)
+            redGradient?.draw(in: dotPath, angle: -45)
 
-            // Pupil highlight — tiny white dot
-            let highlightR = size * 0.025
-            let highlightRect = NSRect(
-                x: cx - pupilR * 0.3 - highlightR / 2,
-                y: cy + pupilR * 0.25 - highlightR / 2,
-                width: highlightR,
-                height: highlightR
-            )
-            NSColor(white: 1.0, alpha: 0.85).setFill()
-            NSBezierPath(ovalIn: highlightRect).fill()
-
-            // Subtle glow around pupil
-            let glowRect = pupilRect.insetBy(dx: -size * 0.03, dy: -size * 0.03)
-            let glowPath = NSBezierPath(ovalIn: glowRect)
-            NSColor(red: 1.0, green: 0.2, blue: 0.2, alpha: 0.15).setStroke()
-            glowPath.lineWidth = size * 0.02
-            glowPath.stroke()
+            // Glow around dot
+            let glowRect = dotRect.insetBy(dx: -size * 0.02, dy: -size * 0.02)
+            NSColor(red: 1.0, green: 0.2, blue: 0.2, alpha: 0.2).setStroke()
+            NSBezierPath(ovalIn: glowRect).stroke()
 
             return true
         }
@@ -91,36 +87,37 @@ struct AppIconGenerator {
             let cx = size / 2
             let cy = size / 2
 
-            // Small eye shape
-            let eyeW = size * 0.75
-            let eyeH = size * 0.30
-            let eyePath = NSBezierPath()
-
-            eyePath.move(to: NSPoint(x: cx - eyeW / 2, y: cy))
-            eyePath.curve(
-                to: NSPoint(x: cx + eyeW / 2, y: cy),
-                controlPoint1: NSPoint(x: cx - eyeW * 0.15, y: cy + eyeH),
-                controlPoint2: NSPoint(x: cx + eyeW * 0.15, y: cy + eyeH)
-            )
-            eyePath.curve(
-                to: NSPoint(x: cx - eyeW / 2, y: cy),
-                controlPoint1: NSPoint(x: cx + eyeW * 0.15, y: cy - eyeH),
-                controlPoint2: NSPoint(x: cx - eyeW * 0.15, y: cy - eyeH)
-            )
-
+            // Small screen shape
+            let screenW: CGFloat = 14
+            let screenH: CGFloat = 10
+            let screenRect = NSRect(x: cx - screenW / 2, y: cy - screenH / 2 + 1, width: screenW, height: screenH)
+            let screenPath = NSBezierPath(roundedRect: screenRect, xRadius: 2, yRadius: 2)
             NSColor.black.setStroke()
-            eyePath.lineWidth = 1.5
-            eyePath.stroke()
+            screenPath.lineWidth = 1.2
+            screenPath.stroke()
 
-            // Pupil dot
-            let dotR: CGFloat = 2.5
-            let dotRect = NSRect(x: cx - dotR, y: cy - dotR, width: dotR * 2, height: dotR * 2)
+            // Stand
+            let standPath = NSBezierPath()
+            standPath.move(to: NSPoint(x: cx, y: screenRect.minY))
+            standPath.line(to: NSPoint(x: cx, y: screenRect.minY - 2))
+            standPath.lineWidth = 1.0
+            standPath.stroke()
+
+            // Base
+            NSBezierPath.strokeLine(
+                from: NSPoint(x: cx - 3, y: screenRect.minY - 2.5),
+                to: NSPoint(x: cx + 3, y: screenRect.minY - 2.5)
+            )
+
+            // Recording dot
+            let dotR: CGFloat = 1.8
+            let dotRect = NSRect(x: screenRect.maxX - 4, y: screenRect.maxY - 4, width: dotR * 2, height: dotR * 2)
             NSColor.black.setFill()
             NSBezierPath(ovalIn: dotRect).fill()
 
             return true
         }
-        image.isTemplate = true // Makes it adapt to light/dark menu bar
+        image.isTemplate = true
         return image
     }
 

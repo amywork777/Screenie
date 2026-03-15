@@ -23,7 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let sounds = SoundEffects.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSLog("Blink: applicationDidFinishLaunching")
+        NSLog("Screenie: applicationDidFinishLaunching")
 
         // Set app icon
         AppIconGenerator.setAppIcon()
@@ -52,10 +52,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyListener.delegate = self
         let success = hotkeyListener.start()
         if success {
-            NSLog("Blink: Hotkey listener started — double-tap Right Control to record!")
+            NSLog("Screenie: Hotkey listener started — double-tap Right Control to record!")
             mainWindow?.updateHotkeyStatus(granted: true)
         } else {
-            NSLog("Blink: Accessibility permission required")
+            NSLog("Screenie: Accessibility permission required")
             mainWindow?.updateHotkeyStatus(granted: false)
         }
         menuBar.setTooltip("Double-tap Right Control to record")
@@ -71,7 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return }
             let success = self.hotkeyListener.start()
             if success {
-                NSLog("Blink: Hotkey listener started after permission grant!")
+                NSLog("Screenie: Hotkey listener started after permission grant!")
                 self.mainWindow?.updateHotkeyStatus(granted: true)
                 self.mainWindow?.updateRecordingStatus(false)
             } else {
@@ -90,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     try service.unregister()
                 }
             } catch {
-                NSLog("Blink: Login item update failed: \(error)")
+                NSLog("Screenie: Login item update failed: \(error)")
             }
         }
     }
@@ -112,9 +112,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     captureAudio: settings.captureAudio,
                     captureMicrophone: settings.captureMicrophone
                 )
-                NSLog("Blink: Recording started!")
+                NSLog("Screenie: Recording started!")
             } catch {
-                NSLog("Blink: Recording failed: \(error)")
+                NSLog("Screenie: Recording failed: \(error)")
                 await MainActor.run {
                     recordingIndicator.hide()
                     menuBar.showRecordingState(false)
@@ -137,11 +137,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         Task {
             guard let result = await currentSession.stop() else {
-                NSLog("Blink: Recording session returned nil")
+                NSLog("Screenie: Recording session returned nil")
                 return
             }
 
-            NSLog("Blink: Recording done — %d events, video at %@", result.events.count, result.videoURL.path)
+            NSLog("Screenie: Recording done — %d events, video at %@", result.events.count, result.videoURL.path)
 
             let archiveURL = storage.archivePath()
             let editor = SimpleEditor()
@@ -154,7 +154,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     events: result.events,
                     outputURL: archiveURL
                 )
-                NSLog("Blink: Auto-edit complete: %.1fs → %.1fs", output.originalDuration, output.editedDuration)
+                NSLog("Screenie: Auto-edit complete: %.1fs → %.1fs", output.originalDuration, output.editedDuration)
 
                 await MainActor.run {
                     recordingIndicator.hide()
@@ -168,13 +168,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     previewHUD = hud
                 }
             } catch {
-                NSLog("Blink: Auto-edit failed: %@, saving raw instead", "\(error)")
+                NSLog("Screenie: Auto-edit failed: %@, saving raw instead", "\(error)")
                 // Fallback: save raw recording (only if it's a valid file)
                 let rawSize = (try? FileManager.default.attributesOfItem(atPath: result.videoURL.path)[.size] as? Int) ?? 0
                 if rawSize > 1000 {
                     try? FileManager.default.copyItem(at: result.videoURL, to: archiveURL)
                 } else {
-                    NSLog("Blink: Raw file too small (%d bytes), not saving", rawSize)
+                    NSLog("Screenie: Raw file too small (%d bytes), not saving", rawSize)
                     storage.cleanupSession(dir: result.sessionDir)
                     return
                 }
@@ -199,7 +199,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.writeObjects([url as NSURL])
-        NSLog("Blink: File copied to clipboard")
+        NSLog("Screenie: File copied to clipboard")
     }
 
     private func showSavedNotification(url: URL, original: Double, edited: Double) {

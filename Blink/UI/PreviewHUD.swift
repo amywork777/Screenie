@@ -144,7 +144,7 @@ final class PreviewHUD: NSPanel {
     private func copyToClipboard() {
         guard let url = clipboardURL else { return }
         guard FileManager.default.fileExists(atPath: url.path) else {
-            NSLog("Blink: Clipboard file doesn't exist: %@", url.path)
+            NSLog("Screenie: Clipboard file doesn't exist: %@", url.path)
             return
         }
         let pasteboard = NSPasteboard.general
@@ -153,7 +153,7 @@ final class PreviewHUD: NSPanel {
         pasteboard.declareTypes([.fileURL, .string], owner: nil)
         pasteboard.setString(url.absoluteString, forType: .fileURL)
         pasteboard.setString(url.path, forType: .string)
-        NSLog("Blink: Copied file to clipboard: %@", url.path)
+        NSLog("Screenie: Copied file to clipboard: %@", url.path)
     }
 
     @objc private func copyAction() {
@@ -162,20 +162,20 @@ final class PreviewHUD: NSPanel {
     }
 
     @objc private func openAction() {
-        NSLog("Blink: Open button clicked")
+        NSLog("Screenie: Open button clicked")
         let url = archiveURL ?? clipboardURL
         guard let url else {
-            NSLog("Blink: No URL to open")
+            NSLog("Screenie: No URL to open")
             return
         }
-        NSLog("Blink: Opening in Finder: %@", url.path)
+        NSLog("Screenie: Opening in Finder: %@", url.path)
         // Open the file directly in the default video player
         NSWorkspace.shared.open(url)
         dismiss()
     }
 
     @objc private func discardAction() {
-        NSLog("Blink: Discard button clicked")
+        NSLog("Screenie: Discard button clicked")
         if let cb = clipboardURL, let ar = archiveURL {
             hudDelegate?.previewHUDDidDiscard(clipboardURL: cb, archiveURL: ar)
         }
@@ -183,10 +183,10 @@ final class PreviewHUD: NSPanel {
     }
 
     @objc private func previewVideo() {
-        NSLog("Blink: Thumbnail clicked")
+        NSLog("Screenie: Thumbnail clicked")
         let url = archiveURL ?? clipboardURL
         guard let url else { return }
-        NSLog("Blink: Opening video: %@", url.path)
+        NSLog("Screenie: Opening video: %@", url.path)
         NSWorkspace.shared.open(url)
     }
 

@@ -38,7 +38,7 @@ final class ScreenRecorder: NSObject {
 
         let w = display.width
         let h = display.height
-        NSLog("Blink: Capturing display %dx%d, audio=%d", w, h, captureAudio ? 1 : 0)
+        NSLog("Screenie: Capturing display %dx%d, audio=%d", w, h, captureAudio ? 1 : 0)
 
         let filter = SCContentFilter(display: display, excludingWindows: [])
         let config = SCStreamConfiguration()
@@ -86,14 +86,14 @@ final class ScreenRecorder: NSObject {
         self.stream = stream
         try await stream.startCapture()
         isRecording = true
-        NSLog("Blink: Capture started (H.264, video only)")
+        NSLog("Screenie: Capture started (H.264, video only)")
     }
 
     func stop() async -> URL? {
         guard isRecording else { return nil }
         isRecording = false
 
-        NSLog("Blink: Stopping — %d video frames", frameCount)
+        NSLog("Screenie: Stopping — %d video frames", frameCount)
 
         if let stream {
             try? await stream.stopCapture()
@@ -105,17 +105,17 @@ final class ScreenRecorder: NSObject {
         if let writer = assetWriter, writer.status == .writing {
             await withCheckedContinuation { continuation in
                 writer.finishWriting {
-                    NSLog("Blink: Writer finished, status=%d", writer.status.rawValue)
+                    NSLog("Screenie: Writer finished, status=%d", writer.status.rawValue)
                     continuation.resume()
                 }
             }
         } else if let writer = assetWriter {
-            NSLog("Blink: Writer status=%d, error=%@", writer.status.rawValue, writer.error?.localizedDescription ?? "none")
+            NSLog("Screenie: Writer status=%d, error=%@", writer.status.rawValue, writer.error?.localizedDescription ?? "none")
         }
 
         if let url = outputURL {
             let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? 0
-            NSLog("Blink: File: %d bytes at %@", size, url.path)
+            NSLog("Screenie: File: %d bytes at %@", size, url.path)
             if size == 0 { return nil }
         }
 
@@ -125,7 +125,7 @@ final class ScreenRecorder: NSObject {
 
 extension ScreenRecorder: SCStreamDelegate {
     func stream(_ stream: SCStream, didStopWithError error: Error) {
-        NSLog("Blink: SCStream error: \(error.localizedDescription)")
+        NSLog("Screenie: SCStream error: \(error.localizedDescription)")
     }
 }
 
@@ -152,7 +152,7 @@ extension ScreenRecorder: SCStreamOutput {
 
         if firstVideoTimestamp == nil {
             firstVideoTimestamp = timestamp
-            NSLog("Blink: First video frame at %.3f", timestamp.seconds)
+            NSLog("Screenie: First video frame at %.3f", timestamp.seconds)
         }
 
         let normalized = timestamp - firstVideoTimestamp!
@@ -173,7 +173,7 @@ extension ScreenRecorder: SCStreamOutput {
 
         if firstAudioTimestamp == nil {
             firstAudioTimestamp = timestamp
-            NSLog("Blink: First audio sample at %.3f", timestamp.seconds)
+            NSLog("Screenie: First audio sample at %.3f", timestamp.seconds)
         }
 
         // Normalize audio timestamp relative to first audio sample

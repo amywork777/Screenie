@@ -16,7 +16,7 @@ final class MainWindow: NSWindow {
             backing: .buffered,
             defer: true
         )
-        title = "Blink"
+        title = "Screenie"
         isReleasedWhenClosed = false
         center()
         setupViews()
@@ -46,12 +46,12 @@ final class MainWindow: NSWindow {
         let container = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 460))
 
         // App title
-        let titleLabel = NSTextField(labelWithString: "Blink")
+        let titleLabel = NSTextField(labelWithString: "Screenie")
         titleLabel.font = .systemFont(ofSize: 32, weight: .bold)
         titleLabel.frame = NSRect(x: 30, y: 400, width: 200, height: 40)
         container.addSubview(titleLabel)
 
-        let subtitleLabel = NSTextField(labelWithString: "Invisible Screen Recorder")
+        let subtitleLabel = NSTextField(labelWithString: "Screen Recording, Perfected")
         subtitleLabel.font = .systemFont(ofSize: 14)
         subtitleLabel.textColor = .secondaryLabelColor
         subtitleLabel.frame = NSRect(x: 30, y: 375, width: 300, height: 20)
@@ -135,7 +135,7 @@ final class MainWindow: NSWindow {
         container.addSubview(micCheckbox)
 
         // Bottom info
-        let infoLabel = NSTextField(labelWithString: "Recordings saved to ~/Recordings/Blink/")
+        let infoLabel = NSTextField(labelWithString: "Recordings saved to ~/Recordings/Screenie/")
         infoLabel.font = .systemFont(ofSize: 11)
         infoLabel.textColor = .tertiaryLabelColor
         infoLabel.frame = NSRect(x: 30, y: 12, width: 320, height: 16)
@@ -151,13 +151,13 @@ final class MainWindow: NSWindow {
     }
 
     @objc private func requestMicPermission() {
-        NSLog("Blink: Requesting mic permission...")
+        NSLog("Screenie: Requesting mic permission...")
 
         // Actually try to use the mic — this forces macOS to show the permission dialog
         do {
             let session = AVCaptureSession()
             guard let mic = AVCaptureDevice.default(for: .audio) else {
-                NSLog("Blink: No microphone device found")
+                NSLog("Screenie: No microphone device found")
                 return
             }
             let input = try AVCaptureDeviceInput(device: mic)
@@ -167,11 +167,11 @@ final class MainWindow: NSWindow {
                 // Brief capture to trigger the dialog
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     session.stopRunning()
-                    NSLog("Blink: Mic test session stopped, permission should be granted now")
+                    NSLog("Screenie: Mic test session stopped, permission should be granted now")
                 }
             }
         } catch {
-            NSLog("Blink: Mic access error: %@ — opening settings", error.localizedDescription)
+            NSLog("Screenie: Mic access error: %@ — opening settings", error.localizedDescription)
             let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!
             NSWorkspace.shared.open(url)
         }

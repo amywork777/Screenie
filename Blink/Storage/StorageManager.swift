@@ -6,12 +6,12 @@ struct StorageManager {
 
     init() {
         let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-        cacheDir = caches.appendingPathComponent("Blink", isDirectory: true)
+        cacheDir = caches.appendingPathComponent("Screenie", isDirectory: true)
 
         let home = FileManager.default.homeDirectoryForCurrentUser
         archiveDir = home
             .appendingPathComponent("Recordings", isDirectory: true)
-            .appendingPathComponent("Blink", isDirectory: true)
+            .appendingPathComponent("Screenie", isDirectory: true)
 
         try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
         try? FileManager.default.createDirectory(at: archiveDir, withIntermediateDirectories: true)
@@ -28,7 +28,7 @@ struct StorageManager {
     func archivePath() -> URL {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd-HH-mm-ss"
-        let name = "blink-\(formatter.string(from: Date())).mp4"
+        let name = "screenie-\(formatter.string(from: Date())).mp4"
         return archiveDir.appendingPathComponent(name)
     }
 

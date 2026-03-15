@@ -35,7 +35,7 @@ final class EventLogger {
         startMousePolling()
         startEventMonitors()
         observeWindowChanges()
-        NSLog("Blink: EventLogger started")
+        NSLog("Screenie: EventLogger started")
     }
 
     func stop() -> [LoggedEvent] {
@@ -54,7 +54,7 @@ final class EventLogger {
         let clickCount = events.filter { $0.type == .mouseClick }.count
         let keyCount = events.filter { $0.type == .keyPress }.count
         let moveCount = events.filter { $0.type == .mouseMove }.count
-        NSLog("Blink: EventLogger stopped — %d clicks, %d keys, %d moves", clickCount, keyCount, moveCount)
+        NSLog("Screenie: EventLogger stopped — %d clicks, %d keys, %d moves", clickCount, keyCount, moveCount)
 
         return events
     }
@@ -100,7 +100,7 @@ final class EventLogger {
         globalKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             self?.recordKeyPress(event)
         }
-        // Local monitors (when Blink is focused)
+        // Local monitors (when Screenie is focused)
         localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
             self?.recordClick(event)
             return event
@@ -119,7 +119,7 @@ final class EventLogger {
             x: pos.x, y: pos.y,
             windowName: nil
         ))
-        NSLog("Blink: Click at (%.0f, %.0f) t=%.1f", pos.x, pos.y, elapsed)
+        NSLog("Screenie: Click at (%.0f, %.0f) t=%.1f", pos.x, pos.y, elapsed)
     }
 
     private func recordKeyPress(_ event: NSEvent) {

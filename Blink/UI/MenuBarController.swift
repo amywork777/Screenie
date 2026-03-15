@@ -110,7 +110,7 @@ final class MenuBarController {
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
-            title: "Quit Blink",
+            title: "Quit Screenie",
             action: #selector(quit(_:)),
             keyEquivalent: "q"
         )
@@ -143,7 +143,7 @@ final class MenuBarController {
 
     @objc private func openFolder(_ sender: NSMenuItem) {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        let folder = home.appendingPathComponent("Recordings/Blink")
+        let folder = home.appendingPathComponent("Recordings/Screenie")
         NSWorkspace.shared.open(folder)
     }
 

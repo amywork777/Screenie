@@ -30,7 +30,7 @@ final class HotkeyListener {
 
     func start() -> Bool {
         if !HotkeyListener.isAccessibilityGranted {
-            NSLog("Blink: Accessibility not granted, prompting...")
+            NSLog("Screenie: Accessibility not granted, prompting...")
             HotkeyListener.promptAccessibility()
             return false
         }
@@ -44,7 +44,7 @@ final class HotkeyListener {
             return event
         }
 
-        NSLog("Blink: Event monitors installed (double-tap Right Control to record)")
+        NSLog("Screenie: Event monitors installed (double-tap Right Control to record)")
         return globalMonitor != nil
     }
 
@@ -64,7 +64,7 @@ final class HotkeyListener {
         let keyCode = event.keyCode
 
         // Debug: log ALL modifier events to find the right keycode
-        NSLog("Blink: key=%d (0x%02X) flags=0x%lX ctrl=%d",
+        NSLog("Screenie: key=%d (0x%02X) flags=0x%lX ctrl=%d",
               keyCode, keyCode, event.modifierFlags.rawValue,
               event.modifierFlags.contains(.control) ? 1 : 0)
 
@@ -72,7 +72,7 @@ final class HotkeyListener {
 
         let isDown = event.modifierFlags.contains(.control)
 
-        NSLog("Blink: Right Control %@", isDown ? "DOWN" : "UP")
+        NSLog("Screenie: Right Control %@", isDown ? "DOWN" : "UP")
 
         if isDown {
             onKeyDown()
@@ -103,10 +103,10 @@ final class HotkeyListener {
     private func dispatchAction(_ action: InputAction?) {
         switch action {
         case .startRecording:
-            NSLog("Blink: >>> START RECORDING <<<")
+            NSLog("Screenie: >>> START RECORDING <<<")
             delegate?.hotkeyListenerDidRequestStart()
         case .stopRecording:
-            NSLog("Blink: >>> STOP RECORDING <<<")
+            NSLog("Screenie: >>> STOP RECORDING <<<")
             delegate?.hotkeyListenerDidRequestStop()
         case nil:
             break

@@ -64,7 +64,7 @@ final class SoundEffects {
                     }
                 }
             } catch {
-                NSLog("Blink: Sound failed: %@", error.localizedDescription)
+                NSLog("Screenie: Sound failed: %@", error.localizedDescription)
             }
         }
     }

@@ -12,7 +12,7 @@ final class OnboardingWindow: NSWindow {
             backing: .buffered,
             defer: true
         )
-        title = "Welcome to Blink"
+        title = "Welcome to Screenie"
         isReleasedWhenClosed = false
         center()
         setupViews()
@@ -21,12 +21,12 @@ final class OnboardingWindow: NSWindow {
     private func setupViews() {
         let container = NSView(frame: contentView!.bounds)
 
-        let title = NSTextField(labelWithString: "Blink")
+        let title = NSTextField(labelWithString: "Screenie")
         title.font = .systemFont(ofSize: 28, weight: .bold)
         title.frame = NSRect(x: 30, y: 270, width: 380, height: 40)
 
         let subtitle = NSTextField(wrappingLabelWithString:
-            "Hold Right Option to record your screen.\nDouble-tap Right Option to toggle recording.\n\nBlink auto-edits your recording with smart speed ramping and zoom, then copies it to your clipboard."
+            "Double-tap Control to start recording.\nDouble-tap Control again to stop.\n\nScreenie auto-edits your recording with smart speed ramping and zoom, then copies it to your clipboard."
         )
         subtitle.font = .systemFont(ofSize: 14)
         subtitle.frame = NSRect(x: 30, y: 150, width: 380, height: 110)

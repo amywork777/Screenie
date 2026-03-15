@@ -143,7 +143,7 @@ final class Compositor {
         fileType: AVFileType
     ) async throws {
         guard let session = AVAssetExportSession(asset: composition, presetName: preset) else {
-            throw NSError(domain: "Blink", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to create export session"])
+            throw NSError(domain: "Screenie", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to create export session"])
         }
         session.outputURL = outputURL
         session.outputFileType = fileType

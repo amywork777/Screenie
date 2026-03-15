@@ -20,18 +20,18 @@ final class MicRecorder: NSObject {
         let status = AVCaptureDevice.authorizationStatus(for: .audio)
         if status == .notDetermined {
             AVCaptureDevice.requestAccess(for: .audio) { _ in }
-            NSLog("Blink: Mic permission requested")
+            NSLog("Screenie: Mic permission requested")
             return
         }
         guard status == .authorized else {
-            NSLog("Blink: Mic permission not granted (status=%d)", status.rawValue)
+            NSLog("Screenie: Mic permission not granted (status=%d)", status.rawValue)
             return
         }
 
         // Set up capture session
         let session = AVCaptureSession()
         guard let mic = AVCaptureDevice.default(for: .audio) else {
-            NSLog("Blink: No microphone found")
+            NSLog("Screenie: No microphone found")
             return
         }
 
@@ -65,7 +65,7 @@ final class MicRecorder: NSObject {
 
         session.startRunning()
         isRecording = true
-        NSLog("Blink: Mic recording started")
+        NSLog("Screenie: Mic recording started")
     }
 
     func stop() async -> URL? {
@@ -83,7 +83,7 @@ final class MicRecorder: NSObject {
             }
         }
 
-        NSLog("Blink: Mic recording stopped — %d samples", sampleCount)
+        NSLog("Screenie: Mic recording stopped — %d samples", sampleCount)
         return sampleCount > 0 ? outputURL : nil
     }
 }
@@ -98,7 +98,7 @@ extension MicRecorder: AVCaptureAudioDataOutputSampleBufferDelegate {
 
         if firstTimestamp == nil {
             firstTimestamp = timestamp
-            NSLog("Blink: First mic sample at %.3f", timestamp.seconds)
+            NSLog("Screenie: First mic sample at %.3f", timestamp.seconds)
         }
 
         // Normalize timestamp

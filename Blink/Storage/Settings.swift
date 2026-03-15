@@ -6,11 +6,11 @@ final class Settings {
     private let defaults = UserDefaults.standard
 
     enum Key: String {
-        case captureAudio = "blink.captureAudio"
-        case captureMicrophone = "blink.captureMicrophone"
-        case saveFolderPath = "blink.saveFolderPath"
-        case autoStart = "blink.autoStart"
-        case hasCompletedOnboarding = "blink.hasCompletedOnboarding"
+        case captureAudio = "screenie.captureAudio"
+        case captureMicrophone = "screenie.captureMicrophone"
+        case saveFolderPath = "screenie.saveFolderPath"
+        case autoStart = "screenie.autoStart"
+        case hasCompletedOnboarding = "screenie.hasCompletedOnboarding"
     }
 
     var captureAudio: Bool {

@@ -24,7 +24,7 @@ final class SimpleEditor {
         do {
             duration = try await asset.load(.duration)
         } catch {
-            NSLog("Blink: Could not load duration, estimating from events")
+            NSLog("Screenie: Could not load duration, estimating from events")
             let maxEventTime = events.map(\.timestamp).max() ?? 5.0
             duration = CMTime(seconds: maxEventTime + 0.5, preferredTimescale: 600)
         }
@@ -34,18 +34,18 @@ final class SimpleEditor {
         do {
             videoTracks = try await asset.loadTracks(withMediaType: .video)
         } catch {
-            NSLog("Blink: Could not load video tracks: %@", error.localizedDescription)
+            NSLog("Screenie: Could not load video tracks: %@", error.localizedDescription)
             throw error
         }
 
         guard let sourceVideoTrack = videoTracks.first else {
-            throw NSError(domain: "Blink", code: 1, userInfo: [NSLocalizedDescriptionKey: "No video track"])
+            throw NSError(domain: "Screenie", code: 1, userInfo: [NSLocalizedDescriptionKey: "No video track"])
         }
 
         let naturalSize = try await sourceVideoTrack.load(.naturalSize)
         let width = Int(naturalSize.width)
         let height = Int(naturalSize.height)
-        NSLog("Blink: Processing %.1fs video (%dx%d) with %d events", durationSecs, width, height, events.count)
+        NSLog("Screenie: Processing %.1fs video (%dx%d) with %d events", durationSecs, width, height, events.count)
 
         // 1. Analyze
         let timeline = ActivityAnalyzer.analyze(events: events, duration: durationSecs)
@@ -55,12 +55,12 @@ final class SimpleEditor {
         let hasSpeedChanges = timeMappings.contains(where: { $0.speed != 1.0 })
         let hasZoom = !clicks.isEmpty
 
-        NSLog("Blink: %d segments, %d clicks — speed:%@ zoom:%@",
+        NSLog("Screenie: %d segments, %d clicks — speed:%@ zoom:%@",
               timeMappings.count, clicks.count,
               hasSpeedChanges ? "yes" : "no", hasZoom ? "yes" : "no")
 
         if !hasSpeedChanges && !hasZoom {
-            NSLog("Blink: No edits needed, copying raw")
+            NSLog("Screenie: No edits needed, copying raw")
             try FileManager.default.copyItem(at: videoURL, to: outputURL)
             return Output(url: outputURL, originalDuration: durationSecs, editedDuration: durationSecs)
         }
@@ -75,7 +75,7 @@ final class SimpleEditor {
 
         // Audio: skip processing for now (retiming causes hangs)
         // Raw recording has audio — it's preserved when "no edits needed" copies the file
-        NSLog("Blink: Audio processing skipped (video-only edit)")
+        NSLog("Screenie: Audio processing skipped (video-only edit)")
 
         // 3. Set up writer
         let writerSettings: [String: Any] = [
@@ -187,7 +187,7 @@ final class SimpleEditor {
 
         let editedDuration = lastOutputTime.seconds
         let fileSize = (try? FileManager.default.attributesOfItem(atPath: outputURL.path)[.size] as? Int) ?? 0
-        NSLog("Blink: Done! %d frames, %.1fs → %.1fs, %d bytes", frameCount, durationSecs, editedDuration, fileSize)
+        NSLog("Screenie: Done! %d frames, %.1fs → %.1fs, %d bytes", frameCount, durationSecs, editedDuration, fileSize)
 
         return Output(url: outputURL, originalDuration: durationSecs, editedDuration: editedDuration)
     }
