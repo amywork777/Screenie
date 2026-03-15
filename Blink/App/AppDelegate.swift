@@ -139,22 +139,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             NSLog("Blink: Recording done — %d events, video at %@", result.events.count, result.videoURL.path)
 
-            // Copy raw recording to archive folder directly (skip processing for now)
             let archiveURL = storage.archivePath()
+            let editor = SimpleEditor()
+
             do {
-                try FileManager.default.copyItem(at: result.videoURL, to: archiveURL)
-                NSLog("Blink: Saved to %@", archiveURL.path)
+                // Auto-edit: speed ramp idle sections
+                let output = try await editor.process(
+                    videoURL: result.videoURL,
+                    events: result.events,
+                    outputURL: archiveURL
+                )
+                NSLog("Blink: Auto-edit complete: %.1fs → %.1fs", output.originalDuration, output.editedDuration)
+
+                await MainActor.run {
+                    recordingIndicator.hide()
+                    copyFileToClipboard(archiveURL)
+                    menuBar.refreshMenu()
+                    showSavedNotification(url: archiveURL, original: output.originalDuration, edited: output.editedDuration)
+                }
             } catch {
-                NSLog("Blink: Failed to copy to archive: %@", error.localizedDescription)
-            }
-
-            // Copy to clipboard as a file
-            await MainActor.run {
-                copyFileToClipboard(archiveURL)
-                menuBar.refreshMenu()
-
-                // Show notification
-                showSavedNotification(url: archiveURL)
+                NSLog("Blink: Auto-edit failed: %@, saving raw instead", "\(error)")
+                // Fallback: save raw recording
+                try? FileManager.default.copyItem(at: result.videoURL, to: archiveURL)
+                await MainActor.run {
+                    recordingIndicator.hide()
+                    copyFileToClipboard(archiveURL)
+                    menuBar.refreshMenu()
+                    showSavedNotification(url: archiveURL, original: 0, edited: 0)
+                }
             }
 
             // Clean up temp files
@@ -169,11 +181,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSLog("Blink: File copied to clipboard")
     }
 
-    private func showSavedNotification(url: URL) {
-        // Show a small alert with the file path and an Open button
+    private func showSavedNotification(url: URL, original: Double, edited: Double) {
         let alert = NSAlert()
         alert.messageText = "Recording Saved"
-        alert.informativeText = url.lastPathComponent
+        if original > 0 && edited > 0 && edited < original {
+            alert.informativeText = String(format: "%@ — %.1fs → %.1fs (%.0f%% shorter)",
+                                           url.lastPathComponent, original, edited,
+                                           (1.0 - edited / original) * 100)
+        } else {
+            alert.informativeText = url.lastPathComponent
+        }
         alert.addButton(withTitle: "Open in Finder")
         alert.addButton(withTitle: "OK")
         alert.alertStyle = .informational
