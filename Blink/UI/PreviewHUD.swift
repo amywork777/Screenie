@@ -139,7 +139,13 @@ final class PreviewHUD: NSPanel {
         guard let url = clipboardURL else { return }
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
+        // Write both the file URL and the file itself so pasting works everywhere
         pasteboard.writeObjects([url as NSURL])
+        // Also set file contents for apps that expect data
+        if let data = try? Data(contentsOf: url) {
+            pasteboard.setData(data, forType: .fileURL)
+        }
+        NSLog("Blink: Copied to clipboard: %@", url.path)
     }
 
     @objc private func copyAction() {
@@ -148,8 +154,14 @@ final class PreviewHUD: NSPanel {
     }
 
     @objc private func openAction() {
-        guard let url = archiveURL else { return }
-        NSWorkspace.shared.activateFileViewerSelecting([url])
+        // Try archive first, fall back to clipboard version
+        let url = archiveURL ?? clipboardURL
+        guard let url else { return }
+        if FileManager.default.fileExists(atPath: url.path) {
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        } else if let fallback = clipboardURL, FileManager.default.fileExists(atPath: fallback.path) {
+            NSWorkspace.shared.activateFileViewerSelecting([fallback])
+        }
         dismiss()
     }
 
@@ -161,7 +173,10 @@ final class PreviewHUD: NSPanel {
     }
 
     @objc private func previewVideo() {
-        guard let url = clipboardURL else { return }
+        // Open in default video player
+        let url = clipboardURL ?? archiveURL
+        guard let url else { return }
+        NSLog("Blink: Opening preview: %@", url.path)
         NSWorkspace.shared.open(url)
     }
 
