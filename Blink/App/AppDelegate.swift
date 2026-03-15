@@ -2,7 +2,15 @@ import AppKit
 import AVFoundation
 import ServiceManagement
 
+@main
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    static func main() {
+        let app = NSApplication.shared
+        let delegate = AppDelegate()
+        app.delegate = delegate
+        app.run()
+    }
+
     private let hotkeyListener = HotkeyListener()
     private let storage = StorageManager()
     private lazy var menuBar = MenuBarController(storage: storage)
@@ -16,14 +24,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let stopSound = NSSound(named: "Pop")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSLog("Blink: applicationDidFinishLaunching")
+
         menuBar.delegate = self
         menuBar.setup()
+        NSLog("Blink: Menu bar set up")
 
-        updateLoginItem()
+        // Skip login item on first launch to avoid crash before signing
+        if settings.hasCompletedOnboarding {
+            updateLoginItem()
+        }
 
         if !settings.hasCompletedOnboarding {
+            NSLog("Blink: Showing onboarding")
             showOnboarding()
         } else {
+            NSLog("Blink: Starting hotkey listener")
             startListening()
         }
     }
@@ -34,7 +50,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.onboardingWindow = nil
         }
         window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate()
         onboardingWindow = window
     }
 
