@@ -1,4 +1,4 @@
-// Blink/Processing/SimpleEditor.swift
+// Screenie/Processing/SimpleEditor.swift
 // Auto-editor: speed ramps idle sections + smooth auto-zoom on clicks
 // Uses AVAssetReader/Writer for reliable frame-level timing control
 import Foundation

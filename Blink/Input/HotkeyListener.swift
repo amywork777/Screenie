@@ -1,4 +1,4 @@
-// Blink/Input/HotkeyListener.swift
+// Screenie/Input/HotkeyListener.swift
 import Foundation
 import AppKit
 import ApplicationServices

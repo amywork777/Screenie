@@ -1,4 +1,4 @@
-// Blink/Capture/EventLogger.swift
+// Screenie/Capture/EventLogger.swift
 import Foundation
 import CoreGraphics
 import AppKit

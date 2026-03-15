@@ -1,4 +1,4 @@
-// Blink/Capture/ScreenRecorder.swift
+// Screenie/Capture/ScreenRecorder.swift
 import Foundation
 import ScreenCaptureKit
 import AVFoundation

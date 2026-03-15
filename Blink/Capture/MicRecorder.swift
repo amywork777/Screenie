@@ -1,4 +1,4 @@
-// Blink/Capture/MicRecorder.swift
+// Screenie/Capture/MicRecorder.swift
 // Records microphone audio to a separate .m4a file
 import AVFoundation
 

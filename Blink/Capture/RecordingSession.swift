@@ -1,4 +1,4 @@
-// Blink/Capture/RecordingSession.swift
+// Screenie/Capture/RecordingSession.swift
 import Foundation
 
 final class RecordingSession {
