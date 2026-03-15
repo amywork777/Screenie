@@ -73,12 +73,12 @@ final class EventLogger {
 
     private func startMousePolling() {
         let timer = DispatchSource.makeTimerSource(queue: .main)
-        timer.schedule(deadline: .now(), repeating: .milliseconds(100))
+        timer.schedule(deadline: .now(), repeating: .milliseconds(16)) // ~60fps mouse tracking
         timer.setEventHandler { [weak self] in
             guard let self else { return }
             let pos = NSEvent.mouseLocation
             let point = CGPoint(x: pos.x, y: pos.y)
-            if point.distance(to: self.lastMousePosition) > 5 {
+            if point.distance(to: self.lastMousePosition) > 1 { // 1px threshold for smooth tracking
                 self.lastMousePosition = point
                 self.events.append(LoggedEvent(
                     timestamp: self.elapsed,

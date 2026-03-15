@@ -19,8 +19,7 @@ final class MenuBarController {
     func setup() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = item.button {
-            button.image = NSImage(systemSymbolName: "record.circle", accessibilityDescription: "Blink")
-            button.image?.size = NSSize(width: 18, height: 18)
+            button.image = AppIconGenerator.menuBarIcon()
         }
         item.menu = buildMenu()
         statusItem = item
@@ -28,11 +27,17 @@ final class MenuBarController {
 
     func showRecordingState(_ isRecording: Bool) {
         if let button = statusItem?.button {
-            button.image = NSImage(
-                systemSymbolName: isRecording ? "record.circle.fill" : "record.circle",
-                accessibilityDescription: "Blink"
-            )
-            button.contentTintColor = isRecording ? .systemRed : nil
+            if isRecording {
+                // Red filled dot when recording
+                let dot = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { rect in
+                    NSColor.systemRed.setFill()
+                    NSBezierPath(ovalIn: rect.insetBy(dx: 4, dy: 4)).fill()
+                    return true
+                }
+                button.image = dot
+            } else {
+                button.image = AppIconGenerator.menuBarIcon()
+            }
         }
     }
 

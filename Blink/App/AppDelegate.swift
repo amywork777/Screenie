@@ -25,6 +25,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("Blink: applicationDidFinishLaunching")
 
+        // Set app icon
+        AppIconGenerator.setAppIcon()
+
         menuBar.delegate = self
         menuBar.setup()
 
