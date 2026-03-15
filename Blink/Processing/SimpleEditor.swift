@@ -65,13 +65,23 @@ final class SimpleEditor {
             return Output(url: outputURL, originalDuration: durationSecs, editedDuration: durationSecs)
         }
 
-        // 2. Set up reader
+        // 2. Set up reader (video)
         let reader = try AVAssetReader(asset: asset)
         let readerSettings: [String: Any] = [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
         ]
         let readerOutput = AVAssetReaderTrackOutput(track: sourceVideoTrack, outputSettings: readerSettings)
         reader.add(readerOutput)
+
+        // Audio reader (if audio track exists)
+        var audioReaderOutput: AVAssetReaderTrackOutput?
+        let audioTracks = try await asset.loadTracks(withMediaType: .audio)
+        if let audioTrack = audioTracks.first {
+            let audioOutput = AVAssetReaderTrackOutput(track: audioTrack, outputSettings: nil) // passthrough
+            reader.add(audioOutput)
+            audioReaderOutput = audioOutput
+            NSLog("Blink: Audio track found, will include in output")
+        }
 
         // 3. Set up writer
         let writerSettings: [String: Any] = [
@@ -92,6 +102,15 @@ final class SimpleEditor {
             ]
         )
         writer.add(writerInput)
+
+        // Audio writer (passthrough — no re-encoding)
+        var audioWriterInput: AVAssetWriterInput?
+        if audioReaderOutput != nil {
+            let aInput = AVAssetWriterInput(mediaType: .audio, outputSettings: nil) // passthrough
+            aInput.expectsMediaDataInRealTime = false
+            writer.add(aInput)
+            audioWriterInput = aInput
+        }
 
         // 4. Process frames
         reader.startReading()
@@ -172,6 +191,46 @@ final class SimpleEditor {
         }
 
         writerInput.markAsFinished()
+
+        // Write audio samples (passthrough, with time adjustment for speed changes)
+        if let audioOutput = audioReaderOutput, let audioInput = audioWriterInput {
+            var audioBaseTimestamp: CMTime?
+            var audioCount = 0
+
+            while let audioSample = audioOutput.copyNextSampleBuffer() {
+                let ts = CMSampleBufferGetPresentationTimeStamp(audioSample)
+                if audioBaseTimestamp == nil { audioBaseTimestamp = ts }
+                let relTime = (ts - audioBaseTimestamp!).seconds
+
+                // Map audio time through speed changes (same as video)
+                let outTime: Double
+                if hasSpeedChanges {
+                    outTime = sourceTimeToOutputTime(relTime, timeMappings: timeMappings)
+                } else {
+                    outTime = relTime
+                }
+
+                // Retime the audio sample
+                var timing = CMSampleTimingInfo(
+                    duration: CMSampleBufferGetDuration(audioSample),
+                    presentationTimeStamp: CMTime(seconds: outTime, preferredTimescale: 48000),
+                    decodeTimeStamp: .invalid
+                )
+                var retimed: CMSampleBuffer?
+                CMSampleBufferCreateCopyWithNewTiming(
+                    allocator: nil, sampleBuffer: audioSample,
+                    sampleTimingEntryCount: 1, sampleTimingArray: &timing,
+                    sampleBufferOut: &retimed
+                )
+
+                if let buf = retimed, audioInput.isReadyForMoreMediaData {
+                    audioInput.append(buf)
+                    audioCount += 1
+                }
+            }
+            audioInput.markAsFinished()
+            NSLog("Blink: Wrote %d audio samples", audioCount)
+        }
 
         await withCheckedContinuation { continuation in
             writer.finishWriting { continuation.resume() }
