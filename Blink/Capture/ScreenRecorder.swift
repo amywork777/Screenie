@@ -38,16 +38,26 @@ final class ScreenRecorder: NSObject {
         config.showsCursor = true
         config.capturesAudio = captureAudio
 
-        // Use nil outputSettings to let AVAssetWriter accept the native format
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mov)
 
-        let vInput = AVAssetWriterInput(mediaType: .video, outputSettings: nil)
+        let videoSettings: [String: Any] = [
+            AVVideoCodecKey: AVVideoCodecType.h264,
+            AVVideoWidthKey: display.width,
+            AVVideoHeightKey: display.height,
+        ]
+        let vInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
         vInput.expectsMediaDataInRealTime = true
         writer.add(vInput)
         videoInput = vInput
 
         if captureAudio {
-            let aInput = AVAssetWriterInput(mediaType: .audio, outputSettings: nil)
+            let audioSettings: [String: Any] = [
+                AVFormatIDKey: kAudioFormatMPEG4AAC,
+                AVSampleRateKey: 48000,
+                AVNumberOfChannelsKey: 2,
+                AVEncoderBitRateKey: 128000,
+            ]
+            let aInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
             aInput.expectsMediaDataInRealTime = true
             writer.add(aInput)
             audioInput = aInput
