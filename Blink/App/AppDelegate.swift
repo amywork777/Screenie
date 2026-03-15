@@ -52,7 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyListener.delegate = self
         let success = hotkeyListener.start()
         if success {
-            NSLog("Blink: Hotkey listener started — hold Right Option to record!")
+            NSLog("Blink: Hotkey listener started — double-tap Right Control to record!")
             mainWindow?.updateHotkeyStatus(granted: true)
         } else {
             NSLog("Blink: Accessibility permission required")

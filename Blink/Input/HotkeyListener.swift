@@ -62,9 +62,17 @@ final class HotkeyListener {
 
     private func handleFlagsChanged(_ event: NSEvent) {
         let keyCode = event.keyCode
+
+        // Debug: log ALL modifier events to find the right keycode
+        NSLog("Blink: key=%d (0x%02X) flags=0x%lX ctrl=%d",
+              keyCode, keyCode, event.modifierFlags.rawValue,
+              event.modifierFlags.contains(.control) ? 1 : 0)
+
         guard keyCode == rightControlKeyCode else { return }
 
         let isDown = event.modifierFlags.contains(.control)
+
+        NSLog("Blink: Right Control %@", isDown ? "DOWN" : "UP")
 
         if isDown {
             onKeyDown()
