@@ -28,9 +28,15 @@ final class PreviewHUD: NSPanel {
         backgroundColor = .clear
         hasShadow = true
         hidesOnDeactivate = false
+        acceptsMouseMovedEvents = true
+        becomesKeyOnlyIfNeeded = true
 
         setupViews()
     }
+
+    // Allow clicks on a non-activating panel
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
 
     func show(clipboardURL: URL, archiveURL: URL, duration: TimeInterval) {
         self.clipboardURL = clipboardURL
