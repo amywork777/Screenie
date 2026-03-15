@@ -80,8 +80,11 @@ final class SimpleEditor {
         // 3. Set up writer — output is larger to fit background + padding
         let padding: CGFloat = 60  // padding around the screen recording
         let cornerRadius: CGFloat = 16
-        let outputW = Int(CGFloat(width) + padding * 2)
-        let outputH = Int(CGFloat(height) + padding * 2)
+        // Round up to multiple of 16 for H.264 compatibility
+        let rawW = Int(CGFloat(width) + padding * 2)
+        let rawH = Int(CGFloat(height) + padding * 2)
+        let outputW = (rawW + 15) / 16 * 16
+        let outputH = (rawH + 15) / 16 * 16
 
         // Pre-render the background gradient (only once)
         let backgroundImage = renderBackground(width: outputW, height: outputH)
@@ -99,6 +102,10 @@ final class SimpleEditor {
             AVVideoCodecKey: AVVideoCodecType.h264,
             AVVideoWidthKey: outputW,
             AVVideoHeightKey: outputH,
+            AVVideoCompressionPropertiesKey: [
+                AVVideoAverageBitRateKey: 10_000_000,
+                AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
+            ] as [String: Any],
         ]
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
         let writerInput = AVAssetWriterInput(mediaType: .video, outputSettings: writerSettings)

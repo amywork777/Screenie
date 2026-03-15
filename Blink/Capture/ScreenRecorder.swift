@@ -53,6 +53,9 @@ final class ScreenRecorder: NSObject {
             config.channelCount = 2
         }
 
+        // Remove existing file if present (prevents -12412 error)
+        try? FileManager.default.removeItem(at: outputURL)
+
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
 
         // Video input

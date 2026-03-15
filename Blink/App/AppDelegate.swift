@@ -169,8 +169,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             } catch {
                 NSLog("Blink: Auto-edit failed: %@, saving raw instead", "\(error)")
-                // Fallback: save raw recording
-                try? FileManager.default.copyItem(at: result.videoURL, to: archiveURL)
+                // Fallback: save raw recording (only if it's a valid file)
+                let rawSize = (try? FileManager.default.attributesOfItem(atPath: result.videoURL.path)[.size] as? Int) ?? 0
+                if rawSize > 1000 {
+                    try? FileManager.default.copyItem(at: result.videoURL, to: archiveURL)
+                } else {
+                    NSLog("Blink: Raw file too small (%d bytes), not saving", rawSize)
+                    storage.cleanupSession(dir: result.sessionDir)
+                    return
+                }
                 await MainActor.run {
                     recordingIndicator.hide()
                     copyFileToClipboard(archiveURL)
