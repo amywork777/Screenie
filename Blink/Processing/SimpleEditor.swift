@@ -4,6 +4,7 @@
 import Foundation
 import AVFoundation
 import CoreImage
+import AppKit
 
 final class SimpleEditor {
 
