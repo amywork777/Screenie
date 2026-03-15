@@ -58,7 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSLog("Blink: Accessibility permission required")
             mainWindow?.updateHotkeyStatus(granted: false)
         }
-        menuBar.setTooltip("Hold Right Option to record")
+        menuBar.setTooltip("Double-tap Right Control to record")
 
         // Re-check accessibility every 2 seconds until granted
         if !success {

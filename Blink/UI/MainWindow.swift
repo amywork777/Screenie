@@ -62,7 +62,7 @@ final class MainWindow: NSWindow {
         container.addSubview(divider)
 
         // Status
-        statusLabel = NSTextField(labelWithString: "Ready — hold Right Option to record")
+        statusLabel = NSTextField(labelWithString: "Ready — double-tap Right Control to record")
         statusLabel.font = .systemFont(ofSize: 13)
         statusLabel.textColor = .secondaryLabelColor
         statusLabel.frame = NSRect(x: 30, y: 270, width: 320, height: 20)
@@ -70,7 +70,7 @@ final class MainWindow: NSWindow {
 
         // Hotkey instructions
         let instructionLabel = NSTextField(wrappingLabelWithString:
-            "Double-tap Right Option — start recording\nDouble-tap Right Option again — stop recording"
+            "Double-tap Right Control — start recording\nDouble-tap Right Control again — stop recording"
         )
         instructionLabel.font = .systemFont(ofSize: 12)
         instructionLabel.textColor = .tertiaryLabelColor

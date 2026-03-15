@@ -17,7 +17,7 @@ final class HotkeyListener {
     private var localMonitor: Any?
 
     private let doubleTapWindow: TimeInterval = 0.35
-    private let rightOptionKeyCode: UInt16 = 61 // 0x3D
+    private let rightControlKeyCode: UInt16 = 62 // 0x3E
 
     static var isAccessibilityGranted: Bool {
         AXIsProcessTrusted()
@@ -44,7 +44,7 @@ final class HotkeyListener {
             return event
         }
 
-        NSLog("Blink: Event monitors installed (double-tap Right Option to record)")
+        NSLog("Blink: Event monitors installed (double-tap Right Control to record)")
         return globalMonitor != nil
     }
 
@@ -62,9 +62,9 @@ final class HotkeyListener {
 
     private func handleFlagsChanged(_ event: NSEvent) {
         let keyCode = event.keyCode
-        guard keyCode == rightOptionKeyCode else { return }
+        guard keyCode == rightControlKeyCode else { return }
 
-        let isDown = event.modifierFlags.contains(.option)
+        let isDown = event.modifierFlags.contains(.control)
 
         if isDown {
             onKeyDown()
