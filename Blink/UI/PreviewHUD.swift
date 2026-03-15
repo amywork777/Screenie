@@ -137,15 +137,17 @@ final class PreviewHUD: NSPanel {
 
     private func copyToClipboard() {
         guard let url = clipboardURL else { return }
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            NSLog("Blink: Clipboard file doesn't exist: %@", url.path)
+            return
+        }
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        // Write both the file URL and the file itself so pasting works everywhere
-        pasteboard.writeObjects([url as NSURL])
-        // Also set file contents for apps that expect data
-        if let data = try? Data(contentsOf: url) {
-            pasteboard.setData(data, forType: .fileURL)
-        }
-        NSLog("Blink: Copied to clipboard: %@", url.path)
+        // Write as file URL (like Finder copy) — enables paste in Finder, Slack, etc.
+        pasteboard.declareTypes([.fileURL, .string], owner: nil)
+        pasteboard.setString(url.absoluteString, forType: .fileURL)
+        pasteboard.setString(url.path, forType: .string)
+        NSLog("Blink: Copied file to clipboard: %@", url.path)
     }
 
     @objc private func copyAction() {
