@@ -26,5 +26,7 @@
     <string>Copyright © 2026 Blink. All rights reserved.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Blink needs microphone access to record your voice alongside screen recordings.</string>
 </dict>
 </plist>
