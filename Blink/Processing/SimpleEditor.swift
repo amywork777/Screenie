@@ -141,20 +141,21 @@ final class SimpleEditor {
 
         let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: compositionTrack)
 
-        // Start at identity (full screen)
+        let transitionDur = 0.3  // smooth ease duration
+        let holdDur = 1.2       // how long to stay zoomed
+
+        // Start at identity
         layerInstruction.setTransform(.identity, at: .zero)
 
         for click in clicks {
             guard let x = click.x, let y = click.y else { continue }
 
-            // Map source time to output time (accounting for speed changes)
             let outputTime = sourceTimeToOutputTime(click.timestamp, timeMappings: timeMappings)
 
             let zoomLevel: CGFloat = 1.5
             let cropW = naturalSize.width / zoomLevel
             let cropH = naturalSize.height / zoomLevel
 
-            // Center crop on click, clamped to screen bounds
             var cropX = x - cropW / 2
             var cropY = y - cropH / 2
             cropX = max(0, min(cropX, naturalSize.width - cropW))
@@ -163,16 +164,32 @@ final class SimpleEditor {
             let scaleX = naturalSize.width / cropW
             let scaleY = naturalSize.height / cropH
 
-            // Zoom in at click time
-            let zoomIn = CGAffineTransform(translationX: -cropX * scaleX, y: -cropY * scaleY)
-                .scaledBy(x: scaleX, y: scaleY)
-            let zoomInTime = CMTime(seconds: outputTime, preferredTimescale: 600)
-            layerInstruction.setTransform(zoomIn, at: zoomInTime)
+            let zoomedTransform = CGAffineTransform(scaleX: scaleX, y: scaleY)
+                .translatedBy(x: -cropX, y: -cropY)
 
-            // Zoom out 1.5s later
-            let zoomOutTime = CMTime(seconds: outputTime + 1.5, preferredTimescale: 600)
-            if zoomOutTime < outputDuration {
-                layerInstruction.setTransform(.identity, at: zoomOutTime)
+            let t0 = CMTime(seconds: outputTime, preferredTimescale: 600)
+            let t1 = CMTime(seconds: outputTime + transitionDur, preferredTimescale: 600)
+            let t2 = CMTime(seconds: outputTime + transitionDur + holdDur, preferredTimescale: 600)
+            let t3 = CMTime(seconds: outputTime + transitionDur + holdDur + transitionDur, preferredTimescale: 600)
+
+            // Smooth zoom in (0.3s ramp from identity → zoomed)
+            layerInstruction.setTransformRamp(
+                fromStart: .identity,
+                toEnd: zoomedTransform,
+                timeRange: CMTimeRange(start: t0, end: t1)
+            )
+
+            // Hold zoomed
+            layerInstruction.setTransform(zoomedTransform, at: t1)
+
+            // Smooth zoom out (0.3s ramp from zoomed → identity)
+            if t3 < outputDuration {
+                layerInstruction.setTransformRamp(
+                    fromStart: zoomedTransform,
+                    toEnd: .identity,
+                    timeRange: CMTimeRange(start: t2, end: t3)
+                )
+                layerInstruction.setTransform(.identity, at: t3)
             }
         }
 
