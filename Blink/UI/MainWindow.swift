@@ -152,27 +152,28 @@ final class MainWindow: NSWindow {
 
     @objc private func requestMicPermission() {
         NSLog("Blink: Requesting mic permission...")
-        let status = AVCaptureDevice.authorizationStatus(for: .audio)
-        NSLog("Blink: Current mic status: %d", status.rawValue)
 
-        if status == .notDetermined {
-            // This should trigger the system dialog
-            AVCaptureDevice.requestAccess(for: .audio) { granted in
-                NSLog("Blink: Mic permission result: %d", granted ? 1 : 0)
-                if !granted {
-                    DispatchQueue.main.async {
-                        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!
-                        NSWorkspace.shared.open(url)
-                    }
+        // Actually try to use the mic — this forces macOS to show the permission dialog
+        do {
+            let session = AVCaptureSession()
+            guard let mic = AVCaptureDevice.default(for: .audio) else {
+                NSLog("Blink: No microphone device found")
+                return
+            }
+            let input = try AVCaptureDeviceInput(device: mic)
+            if session.canAddInput(input) {
+                session.addInput(input)
+                session.startRunning()
+                // Brief capture to trigger the dialog
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    session.stopRunning()
+                    NSLog("Blink: Mic test session stopped, permission should be granted now")
                 }
             }
-        } else if status == .denied || status == .restricted {
-            // Already denied — open settings
-            NSLog("Blink: Mic denied, opening settings")
+        } catch {
+            NSLog("Blink: Mic access error: %@ — opening settings", error.localizedDescription)
             let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!
             NSWorkspace.shared.open(url)
-        } else {
-            NSLog("Blink: Mic already authorized")
         }
     }
 
