@@ -77,11 +77,28 @@ final class SimpleEditor {
         // Raw recording has audio — it's preserved when "no edits needed" copies the file
         NSLog("Blink: Audio processing skipped (video-only edit)")
 
-        // 3. Set up writer
+        // 3. Set up writer — output is larger to fit background + padding
+        let padding: CGFloat = 60  // padding around the screen recording
+        let cornerRadius: CGFloat = 16
+        let outputW = Int(CGFloat(width) + padding * 2)
+        let outputH = Int(CGFloat(height) + padding * 2)
+
+        // Pre-render the background gradient (only once)
+        let backgroundImage = renderBackground(width: outputW, height: outputH)
+        // Pre-render the shadow
+        let shadowImage = renderShadow(
+            contentSize: CGSize(width: width, height: height),
+            padding: padding,
+            cornerRadius: cornerRadius,
+            canvasSize: CGSize(width: outputW, height: outputH)
+        )
+
+        NSLog("Blink: Output with background: %dx%d (padding=%.0f)", outputW, outputH, padding)
+
         let writerSettings: [String: Any] = [
             AVVideoCodecKey: AVVideoCodecType.h264,
-            AVVideoWidthKey: width,
-            AVVideoHeightKey: height,
+            AVVideoWidthKey: outputW,
+            AVVideoHeightKey: outputH,
         ]
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
         let writerInput = AVAssetWriterInput(mediaType: .video, outputSettings: writerSettings)
@@ -91,8 +108,8 @@ final class SimpleEditor {
             assetWriterInput: writerInput,
             sourcePixelBufferAttributes: [
                 kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
-                kCVPixelBufferWidthKey as String: width,
-                kCVPixelBufferHeightKey as String: height,
+                kCVPixelBufferWidthKey as String: outputW,
+                kCVPixelBufferHeightKey as String: outputH,
             ]
         )
         writer.add(writerInput)
@@ -167,12 +184,25 @@ final class SimpleEditor {
                 finalBuffer = withCursor
             }
 
+            // 3. Composite onto background with rounded corners + shadow
+            let composited = compositeOnBackground(
+                frame: finalBuffer,
+                background: backgroundImage,
+                shadow: shadowImage,
+                padding: padding,
+                cornerRadius: cornerRadius,
+                contentSize: naturalSize,
+                canvasSize: CGSize(width: outputW, height: outputH),
+                context: ciContext,
+                adaptor: adaptor
+            )
+
             // Wait for writer to be ready
             while !writerInput.isReadyForMoreMediaData {
                 Thread.sleep(forTimeInterval: 0.01)
             }
 
-            adaptor.append(finalBuffer, withPresentationTime: outputTime)
+            adaptor.append(composited, withPresentationTime: outputTime)
             lastOutputTime = outputTime
             frameCount += 1
         }
@@ -501,6 +531,125 @@ final class SimpleEditor {
             return ciImage
         }
         return nil
+    }
+
+    // MARK: - Background compositing
+
+    /// Render a gradient background (dark, modern — like Screen Studio)
+    private func renderBackground(width: Int, height: Int) -> CIImage {
+        let size = NSSize(width: width, height: height)
+        let image = NSImage(size: size, flipped: false) { rect in
+            // Deep blue-purple gradient
+            let gradient = NSGradient(colors: [
+                NSColor(red: 0.08, green: 0.06, blue: 0.18, alpha: 1),  // deep indigo
+                NSColor(red: 0.15, green: 0.08, blue: 0.25, alpha: 1),  // purple
+                NSColor(red: 0.10, green: 0.12, blue: 0.22, alpha: 1),  // blue-grey
+            ], atLocations: [0, 0.5, 1], colorSpace: .deviceRGB)
+            gradient?.draw(in: rect, angle: -35)
+
+            // Subtle noise texture
+            for _ in 0..<(width * height / 80) {
+                let x = CGFloat.random(in: 0..<CGFloat(width))
+                let y = CGFloat.random(in: 0..<CGFloat(height))
+                NSColor(white: 1.0, alpha: CGFloat.random(in: 0.01...0.03)).setFill()
+                NSBezierPath(ovalIn: NSRect(x: x, y: y, width: 1, height: 1)).fill()
+            }
+            return true
+        }
+
+        guard let tiff = image.tiffRepresentation, let ci = CIImage(data: tiff) else {
+            return CIImage(color: .black).cropped(to: CGRect(x: 0, y: 0, width: width, height: height))
+        }
+        return ci
+    }
+
+    /// Render a soft shadow beneath the content area
+    private func renderShadow(contentSize: CGSize, padding: CGFloat, cornerRadius: CGFloat, canvasSize: CGSize) -> CIImage {
+        let image = NSImage(size: canvasSize, flipped: false) { rect in
+            let shadowRect = NSRect(
+                x: padding - 4, y: padding - 8,
+                width: contentSize.width + 8, height: contentSize.height + 8
+            )
+            let shadowPath = NSBezierPath(roundedRect: shadowRect, xRadius: cornerRadius + 2, yRadius: cornerRadius + 2)
+
+            let shadow = NSShadow()
+            shadow.shadowColor = NSColor(white: 0, alpha: 0.5)
+            shadow.shadowBlurRadius = 30
+            shadow.shadowOffset = NSSize(width: 0, height: -8)
+
+            NSGraphicsContext.saveGraphicsState()
+            shadow.set()
+            NSColor.black.setFill()
+            shadowPath.fill()
+            NSGraphicsContext.restoreGraphicsState()
+
+            // Clear the inner rect so only shadow shows
+            NSColor.clear.setFill()
+            NSBezierPath(roundedRect: NSRect(
+                x: padding, y: padding,
+                width: contentSize.width, height: contentSize.height
+            ), xRadius: cornerRadius, yRadius: cornerRadius).fill(using: NSCompositingOperation.copy)
+
+            return true
+        }
+
+        guard let tiff = image.tiffRepresentation, let ci = CIImage(data: tiff) else {
+            return CIImage.empty()
+        }
+        return ci
+    }
+
+    /// Composite a video frame onto the background with rounded corners and shadow
+    private func compositeOnBackground(
+        frame: CVPixelBuffer,
+        background: CIImage,
+        shadow: CIImage,
+        padding: CGFloat,
+        cornerRadius: CGFloat,
+        contentSize: CGSize,
+        canvasSize: CGSize,
+        context: CIContext,
+        adaptor: AVAssetWriterInputPixelBufferAdaptor
+    ) -> CVPixelBuffer {
+        let frameImage = CIImage(cvPixelBuffer: frame)
+
+        // Apply rounded corners via a mask
+        let maskRect = CGRect(x: 0, y: 0, width: contentSize.width, height: contentSize.height)
+        let maskImage = NSImage(size: contentSize, flipped: false) { rect in
+            NSColor.white.setFill()
+            NSBezierPath(roundedRect: rect, xRadius: cornerRadius, yRadius: cornerRadius).fill()
+            return true
+        }
+
+        let mask: CIImage
+        if let tiff = maskImage.tiffRepresentation, let ci = CIImage(data: tiff) {
+            mask = ci
+        } else {
+            mask = CIImage(color: .white).cropped(to: maskRect)
+        }
+
+        // Apply mask (rounded corners)
+        let rounded = frameImage.applyingFilter("CIBlendWithMask", parameters: [
+            kCIInputMaskImageKey: mask,
+            kCIInputBackgroundImageKey: CIImage(color: .clear).cropped(to: maskRect)
+        ])
+
+        // Position frame on canvas (centered with padding)
+        let positioned = rounded.transformed(by: CGAffineTransform(translationX: padding, y: padding))
+
+        // Stack: background → shadow → frame
+        let withShadow = shadow.composited(over: background)
+        let final_ = positioned.composited(over: withShadow)
+
+        // Render to output buffer
+        guard let pool = adaptor.pixelBufferPool else { return frame }
+        var outputBuffer: CVPixelBuffer?
+        CVPixelBufferPoolCreatePixelBuffer(nil, pool, &outputBuffer)
+        guard let output = outputBuffer else { return frame }
+
+        let renderRect = CGRect(origin: .zero, size: canvasSize)
+        context.render(final_, to: output, bounds: renderRect, colorSpace: CGColorSpaceCreateDeviceRGB())
+        return output
     }
 
     // MARK: - Audio merge
