@@ -143,6 +143,7 @@
 			isa = PBXGroup;
 			children = (
 				B1000000000000000000011B /* MenuBarController.swift */,
+				B1000000000000000000011D /* OnboardingWindow.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -282,6 +283,7 @@
 				B10000000000000000000114 /* Compositor.swift in Sources */,
 				B10000000000000000000118 /* Settings.swift in Sources */,
 				B1000000000000000000011A /* MenuBarController.swift in Sources */,
+				B1000000000000000000011C /* OnboardingWindow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
