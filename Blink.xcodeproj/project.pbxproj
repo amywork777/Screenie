@@ -35,6 +35,7 @@
 	B10000000000000000000151 /* FloatingIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000150 /* FloatingIndicator.swift */; };
 	B10000000000000000000153 /* SoundEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000152 /* SoundEffects.swift */; };
 	B10000000000000000000161 /* AppIconGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000160 /* AppIconGenerator.swift */; };
+	B10000000000000000000171 /* MicRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000170 /* MicRecorder.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +71,7 @@
 	B10000000000000000000150 /* FloatingIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingIndicator.swift; sourceTree = "<group>"; };
 	B10000000000000000000152 /* SoundEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundEffects.swift; sourceTree = "<group>"; };
 	B10000000000000000000160 /* AppIconGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconGenerator.swift; sourceTree = "<group>"; };
+	B10000000000000000000170 /* MicRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicRecorder.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -138,6 +140,7 @@
 				B10000000000000000000109 /* EventLogger.swift */,
 				B1000000000000000000010A /* ScreenRecorder.swift */,
 				B1000000000000000000010B /* RecordingSession.swift */,
+				B10000000000000000000170 /* MicRecorder.swift */,
 			);
 			path = Capture;
 			sourceTree = "<group>";
@@ -312,6 +315,7 @@
 			B10000000000000000000151 /* FloatingIndicator.swift in Sources */,
 			B10000000000000000000153 /* SoundEffects.swift in Sources */,
 		B10000000000000000000161 /* AppIconGenerator.swift in Sources */,
+		B10000000000000000000171 /* MicRecorder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

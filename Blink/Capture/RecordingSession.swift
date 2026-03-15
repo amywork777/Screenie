@@ -3,6 +3,7 @@ import Foundation
 
 final class RecordingSession {
     private let recorder = ScreenRecorder()
+    private let micRecorder = MicRecorder()
     private let eventLogger = EventLogger()
     private let storage: StorageManager
     private var sessionDir: URL?
@@ -13,6 +14,7 @@ final class RecordingSession {
 
     struct Result {
         let videoURL: URL
+        let micAudioURL: URL?  // separate mic track, nil if mic not enabled
         let events: [LoggedEvent]
         let sessionDir: URL
     }
@@ -24,16 +26,23 @@ final class RecordingSession {
 
         eventLogger.start()
         try await recorder.start(outputURL: videoURL, captureAudio: captureAudio, captureMicrophone: captureMicrophone)
+
+        // Start mic recording separately
+        if captureMicrophone {
+            let micURL = dir.appendingPathComponent("mic.m4a")
+            try? micRecorder.start(outputURL: micURL)
+        }
     }
 
     func stop() async -> Result? {
         let events = eventLogger.stop()
+        let micURL = await micRecorder.stop()
         guard let videoURL = await recorder.stop(),
               let dir = sessionDir else { return nil }
 
         let eventLogURL = dir.appendingPathComponent("events.jsonl")
         try? eventLogger.writeToFile(at: eventLogURL)
 
-        return Result(videoURL: videoURL, events: events, sessionDir: dir)
+        return Result(videoURL: videoURL, micAudioURL: micURL, events: events, sessionDir: dir)
     }
 }

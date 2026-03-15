@@ -14,7 +14,7 @@ final class SimpleEditor {
         let editedDuration: Double
     }
 
-    func process(videoURL: URL, events: [LoggedEvent], outputURL: URL) async throws -> Output {
+    func process(videoURL: URL, micAudioURL: URL? = nil, events: [LoggedEvent], outputURL: URL) async throws -> Output {
         let asset = AVURLAsset(url: videoURL, options: [
             AVURLAssetPreferPreciseDurationAndTimingKey: true
         ])
@@ -198,6 +198,7 @@ final class SimpleEditor {
                 try await mergeAudioIntoVideo(
                     videoURL: outputURL,
                     rawAudioTrack: rawAudioTrack,
+                    micAudioURL: micAudioURL,
                     timeMappings: hasSpeedChanges ? timeMappings : [],
                     outputURL: finalURL
                 )
@@ -508,6 +509,7 @@ final class SimpleEditor {
     private func mergeAudioIntoVideo(
         videoURL: URL,
         rawAudioTrack: AVAssetTrack,
+        micAudioURL: URL? = nil,
         timeMappings: [TimeMapping],
         outputURL: URL
     ) async throws {
@@ -564,6 +566,22 @@ final class SimpleEditor {
                 } catch {
                     NSLog("Blink: Audio segment failed: %@", error.localizedDescription)
                 }
+            }
+        }
+
+        // Add mic audio track if available
+        if let micURL = micAudioURL {
+            let micAsset = AVURLAsset(url: micURL)
+            if let micTrack = try? await micAsset.loadTracks(withMediaType: .audio).first {
+                let micDuration = try await micAsset.load(.duration)
+                let compMicTrack = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: 3)!
+                let insertDuration = min(micDuration, videoDuration)
+                try? compMicTrack.insertTimeRange(
+                    CMTimeRange(start: .zero, duration: insertDuration),
+                    of: micTrack,
+                    at: .zero
+                )
+                NSLog("Blink: Mic audio track added (%.1fs)", insertDuration.seconds)
             }
         }
 

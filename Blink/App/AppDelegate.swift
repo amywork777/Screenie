@@ -150,6 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 // Auto-edit: speed ramp idle sections
                 let output = try await editor.process(
                     videoURL: result.videoURL,
+                    micAudioURL: result.micAudioURL,
                     events: result.events,
                     outputURL: archiveURL
                 )
