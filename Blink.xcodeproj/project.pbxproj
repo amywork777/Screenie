@@ -23,6 +23,8 @@
 		B1000000000000000000000F /* SpeedMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000010F /* SpeedMapperTests.swift */; };
 		B10000000000000000000110 /* ZoomEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000111 /* ZoomEngine.swift */; };
 		B10000000000000000000112 /* ZoomEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000113 /* ZoomEngineTests.swift */; };
+		B10000000000000000000114 /* Compositor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000115 /* Compositor.swift */; };
+		B10000000000000000000116 /* CompositorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000117 /* CompositorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -46,6 +48,8 @@
 		B1000000000000000000010F /* SpeedMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedMapperTests.swift; sourceTree = "<group>"; };
 		B10000000000000000000111 /* ZoomEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomEngine.swift; sourceTree = "<group>"; };
 		B10000000000000000000113 /* ZoomEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomEngineTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000115 /* Compositor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Compositor.swift; sourceTree = "<group>"; };
+		B10000000000000000000117 /* CompositorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompositorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -124,6 +128,7 @@
 				B1000000000000000000010C /* ActivityAnalyzer.swift */,
 				B1000000000000000000010E /* SpeedMapper.swift */,
 				B10000000000000000000111 /* ZoomEngine.swift */,
+				B10000000000000000000115 /* Compositor.swift */,
 			);
 			path = Processing;
 			sourceTree = "<group>";
@@ -160,6 +165,7 @@
 				B1000000000000000000010D /* ActivityAnalyzerTests.swift */,
 				B1000000000000000000010F /* SpeedMapperTests.swift */,
 				B10000000000000000000113 /* ZoomEngineTests.swift */,
+				B10000000000000000000117 /* CompositorTests.swift */,
 			);
 			path = BlinkTests;
 			sourceTree = "<group>";
@@ -265,6 +271,7 @@
 				B1000000000000000000000B /* ActivityAnalyzer.swift in Sources */,
 				B1000000000000000000000E /* SpeedMapper.swift in Sources */,
 				B10000000000000000000110 /* ZoomEngine.swift in Sources */,
+				B10000000000000000000114 /* Compositor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -277,6 +284,7 @@
 				B1000000000000000000000C /* ActivityAnalyzerTests.swift in Sources */,
 				B1000000000000000000000F /* SpeedMapperTests.swift in Sources */,
 				B10000000000000000000112 /* ZoomEngineTests.swift in Sources */,
+				B10000000000000000000116 /* CompositorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
