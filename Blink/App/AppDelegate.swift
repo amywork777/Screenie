@@ -129,40 +129,59 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBar.showRecordingState(false)
         mainWindow?.updateRecordingStatus(false)
 
-        recordingIndicator.showProcessing()
-
         session = nil
 
         Task {
-            guard let result = await currentSession.stop() else { return }
-
-            let compositor = Compositor(storage: storage)
-            do {
-                let output = try await compositor.process(result: result)
-
-                await MainActor.run {
-                    recordingIndicator.hide()
-                    showPreview(output: output)
-                    menuBar.refreshMenu()
-                }
-
-                storage.cleanupSession(dir: result.sessionDir)
-            } catch {
-                NSLog("Blink: Processing failed: \(error)")
-                await MainActor.run { recordingIndicator.hide() }
+            guard let result = await currentSession.stop() else {
+                NSLog("Blink: Recording session returned nil")
+                return
             }
+
+            NSLog("Blink: Recording done — %d events, video at %@", result.events.count, result.videoURL.path)
+
+            // Copy raw recording to archive folder directly (skip processing for now)
+            let archiveURL = storage.archivePath()
+            do {
+                try FileManager.default.copyItem(at: result.videoURL, to: archiveURL)
+                NSLog("Blink: Saved to %@", archiveURL.path)
+            } catch {
+                NSLog("Blink: Failed to copy to archive: %@", error.localizedDescription)
+            }
+
+            // Copy to clipboard as a file
+            await MainActor.run {
+                copyFileToClipboard(archiveURL)
+                menuBar.refreshMenu()
+
+                // Show notification
+                showSavedNotification(url: archiveURL)
+            }
+
+            // Clean up temp files
+            storage.cleanupSession(dir: result.sessionDir)
         }
     }
 
-    private func showPreview(output: CompositorOutput) {
-        let hud = PreviewHUD()
-        hud.hudDelegate = self
-        hud.show(
-            clipboardURL: output.clipboardURL,
-            archiveURL: output.archiveURL,
-            duration: output.duration
-        )
-        previewHUD = hud
+    private func copyFileToClipboard(_ url: URL) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.writeObjects([url as NSURL])
+        NSLog("Blink: File copied to clipboard")
+    }
+
+    private func showSavedNotification(url: URL) {
+        // Show a small alert with the file path and an Open button
+        let alert = NSAlert()
+        alert.messageText = "Recording Saved"
+        alert.informativeText = url.lastPathComponent
+        alert.addButton(withTitle: "Open in Finder")
+        alert.addButton(withTitle: "OK")
+        alert.alertStyle = .informational
+
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        }
     }
 
     // Re-open window when dock icon clicked
