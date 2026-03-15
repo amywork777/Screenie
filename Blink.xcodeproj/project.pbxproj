@@ -26,6 +26,8 @@
 		B10000000000000000000114 /* Compositor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000115 /* Compositor.swift */; };
 		B10000000000000000000116 /* CompositorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000117 /* CompositorTests.swift */; };
 		B10000000000000000000118 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000119 /* Settings.swift */; };
+		B1000000000000000000011A /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000011B /* MenuBarController.swift */; };
+		B1000000000000000000011C /* OnboardingWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000011D /* OnboardingWindow.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -52,6 +54,8 @@
 		B10000000000000000000115 /* Compositor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Compositor.swift; sourceTree = "<group>"; };
 		B10000000000000000000117 /* CompositorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompositorTests.swift; sourceTree = "<group>"; };
 		B10000000000000000000119 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		B1000000000000000000011B /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
+		B1000000000000000000011D /* OnboardingWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWindow.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -138,6 +142,7 @@
 		B10000000000000000000214 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				B1000000000000000000011B /* MenuBarController.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -276,6 +281,7 @@
 				B10000000000000000000110 /* ZoomEngine.swift in Sources */,
 				B10000000000000000000114 /* Compositor.swift in Sources */,
 				B10000000000000000000118 /* Settings.swift in Sources */,
+				B1000000000000000000011A /* MenuBarController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

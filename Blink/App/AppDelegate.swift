@@ -13,6 +13,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+extension AppDelegate {
+    func updateLoginItem() {
+        // TODO: implement SMAppService login item registration in Task 16
+    }
+}
+
 extension AppDelegate: HotkeyListenerDelegate {
     func hotkeyListenerDidRequestStart() {
         NSLog("Blink: Starting recording...")
