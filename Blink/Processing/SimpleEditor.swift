@@ -107,6 +107,12 @@ final class SimpleEditor {
         // Precompute zoom timeline for smooth panning
         let zoomTimeline = hasZoom ? buildZoomTimeline(clicks: clicks, allEvents: events, duration: durationSecs) : []
 
+        // Build cursor position track for rendering cursor overlay
+        let cursorTrack = buildCursorTrack(from: events)
+
+        // Pre-render cursor image (white arrow with black border)
+        let cursorImage = renderCursorImage()
+
         while let sampleBuffer = readerOutput.copyNextSampleBuffer() {
             let sourceTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
 
@@ -114,10 +120,8 @@ final class SimpleEditor {
                 baseTimestamp = sourceTime
             }
 
-            // Relative time from start of recording
             let relativeTime = (sourceTime - baseTimestamp!).seconds
 
-            // Map to output time based on speed
             let outputTimeSecs: Double
             if hasSpeedChanges {
                 outputTimeSecs = sourceTimeToOutputTime(relativeTime, timeMappings: timeMappings)
@@ -126,22 +130,32 @@ final class SimpleEditor {
             }
             let outputTime = CMTime(seconds: outputTimeSecs, preferredTimescale: 600)
 
-            // Get pixel buffer
             guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { continue }
 
-            // Apply zoom if needed
+            // 1. Draw cursor onto the frame
+            let cursorPos = cursorPositionAt(time: relativeTime, track: cursorTrack)
+            let withCursor = drawCursor(
+                on: pixelBuffer,
+                cursorImage: cursorImage,
+                position: cursorPos,
+                screenSize: naturalSize,
+                context: ciContext,
+                adaptor: adaptor
+            )
+
+            // 2. Apply zoom if needed
             let finalBuffer: CVPixelBuffer
             if hasZoom {
                 let zState = zoomAt(time: relativeTime, timeline: zoomTimeline)
                 finalBuffer = applyZoom(
-                    to: pixelBuffer,
+                    to: withCursor,
                     zoom: zState,
                     size: naturalSize,
                     context: ciContext,
                     adaptor: adaptor
-                ) ?? pixelBuffer
+                ) ?? withCursor
             } else {
-                finalBuffer = pixelBuffer
+                finalBuffer = withCursor
             }
 
             // Wait for writer to be ready
@@ -333,6 +347,93 @@ final class SimpleEditor {
         guard !timeline.isEmpty else { return ZoomState(level: 1.0, center: .zero) }
         let idx = timeline.lastIndex(where: { $0.time <= time }) ?? 0
         return timeline[idx].state
+    }
+
+    // MARK: - Cursor rendering
+
+    private func buildCursorTrack(from events: [LoggedEvent]) -> [(time: TimeInterval, pos: CGPoint)] {
+        var track: [(time: TimeInterval, pos: CGPoint)] = []
+        for event in events {
+            if let x = event.x, let y = event.y {
+                track.append((time: event.timestamp, pos: CGPoint(x: x, y: y)))
+            }
+        }
+        return track.sorted { $0.time < $1.time }
+    }
+
+    private func cursorPositionAt(time: TimeInterval, track: [(time: TimeInterval, pos: CGPoint)]) -> CGPoint {
+        guard !track.isEmpty else { return .zero }
+        if let entry = track.last(where: { $0.time <= time }) {
+            return entry.pos
+        }
+        return track[0].pos
+    }
+
+    /// Renders a macOS-style cursor arrow as a CIImage
+    private func renderCursorImage() -> CIImage {
+        let size = NSSize(width: 24, height: 28)
+        let image = NSImage(size: size, flipped: false) { rect in
+            // Arrow cursor shape
+            let path = NSBezierPath()
+            path.move(to: NSPoint(x: 2, y: 26))    // top-left (tip)
+            path.line(to: NSPoint(x: 2, y: 2))      // bottom-left
+            path.line(to: NSPoint(x: 9, y: 9))      // inner right
+            path.line(to: NSPoint(x: 15, y: 2))     // bottom-right arm
+            path.line(to: NSPoint(x: 18, y: 5))     // outer right arm
+            path.line(to: NSPoint(x: 12, y: 12))    // inner junction
+            path.line(to: NSPoint(x: 20, y: 12))    // right arm
+            path.close()
+
+            // Black border
+            NSColor.black.setStroke()
+            path.lineWidth = 2.0
+            path.stroke()
+
+            // White fill
+            NSColor.white.setFill()
+            path.fill()
+
+            return true
+        }
+
+        // Convert to CIImage
+        guard let tiffData = image.tiffRepresentation,
+              let ciImage = CIImage(data: tiffData) else {
+            return CIImage.empty()
+        }
+        return ciImage
+    }
+
+    /// Draws cursor onto a pixel buffer, returns a new buffer with the cursor composited
+    private func drawCursor(
+        on pixelBuffer: CVPixelBuffer,
+        cursorImage: CIImage,
+        position: CGPoint,
+        screenSize: CGSize,
+        context: CIContext,
+        adaptor: AVAssetWriterInputPixelBufferAdaptor
+    ) -> CVPixelBuffer {
+        let baseImage = CIImage(cvPixelBuffer: pixelBuffer)
+
+        // Convert Cocoa coords (Y from bottom) to CIImage coords (also Y from bottom)
+        // Position the cursor with its tip at the cursor location
+        let cursorX = position.x
+        let cursorY = position.y - 28  // offset so tip is at position
+
+        let positioned = cursorImage
+            .transformed(by: CGAffineTransform(translationX: cursorX, y: cursorY))
+
+        let composited = positioned.composited(over: baseImage)
+
+        // Render to new buffer
+        guard let pool = adaptor.pixelBufferPool else { return pixelBuffer }
+        var outputBuffer: CVPixelBuffer?
+        CVPixelBufferPoolCreatePixelBuffer(nil, pool, &outputBuffer)
+        guard let output = outputBuffer else { return pixelBuffer }
+
+        let renderRect = CGRect(origin: .zero, size: screenSize)
+        context.render(composited, to: output, bounds: renderRect, colorSpace: CGColorSpaceCreateDeviceRGB())
+        return output
     }
 
     // MARK: - Speed mapping
