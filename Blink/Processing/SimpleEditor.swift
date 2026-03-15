@@ -313,63 +313,48 @@ final class SimpleEditor {
 
     // MARK: - Cursor rendering (Screen Studio style)
 
-    /// Build smoothed cursor track — reconstructs path with cubic interpolation
-    /// instead of using raw jittery mouse positions
+    /// Build cursor track — raw positions sorted by time, no resampling
     private func buildCursorTrack(from events: [LoggedEvent]) -> [(time: TimeInterval, pos: CGPoint)] {
-        var raw: [(time: TimeInterval, pos: CGPoint)] = []
+        var track: [(time: TimeInterval, pos: CGPoint)] = []
         for event in events {
             if let x = event.x, let y = event.y {
-                raw.append((time: event.timestamp, pos: CGPoint(x: x, y: y)))
+                track.append((time: event.timestamp, pos: CGPoint(x: x, y: y)))
             }
         }
-        raw.sort { $0.time < $1.time }
-        guard raw.count >= 2 else { return raw }
-
-        // Resample at 60fps with cubic interpolation for smooth paths
-        var smoothed: [(time: TimeInterval, pos: CGPoint)] = []
-        let step = 1.0 / 60.0
-        var t = raw[0].time
-
-        while t <= (raw.last?.time ?? 0) {
-            let pos = interpolatedPosition(at: t, track: raw)
-            smoothed.append((time: t, pos: pos))
-            t += step
-        }
-
-        return smoothed
+        track.sort { $0.time < $1.time }
+        return track
     }
 
-    /// Cubic Hermite interpolation between track points for smooth cursor movement
-    private func interpolatedPosition(at time: TimeInterval, track: [(time: TimeInterval, pos: CGPoint)]) -> CGPoint {
-        // Find surrounding points
-        var i1 = 0
-        for i in 0..<track.count {
-            if track[i].time > time { break }
-            i1 = i
-        }
-        let i2 = min(i1 + 1, track.count - 1)
-
-        if i1 == i2 { return track[i1].pos }
-
-        let t1 = track[i1].time
-        let t2 = track[i2].time
-        let progress = (time - t1) / (t2 - t1)
-
-        // Smoothstep for natural easing between points
-        let t = progress * progress * (3.0 - 2.0 * progress)
-
-        let x = track[i1].pos.x + CGFloat(t) * (track[i2].pos.x - track[i1].pos.x)
-        let y = track[i1].pos.y + CGFloat(t) * (track[i2].pos.y - track[i1].pos.y)
-        return CGPoint(x: x, y: y)
-    }
-
+    /// Get cursor position at a given time — linear interpolation between raw samples
     private func cursorPositionAt(time: TimeInterval, track: [(time: TimeInterval, pos: CGPoint)]) -> CGPoint {
         guard !track.isEmpty else { return .zero }
-        // Find closest entry
-        if let entry = track.last(where: { $0.time <= time }) {
-            return entry.pos
+
+        // Binary search for the two surrounding samples
+        var lo = 0
+        var hi = track.count - 1
+        while lo < hi - 1 {
+            let mid = (lo + hi) / 2
+            if track[mid].time <= time {
+                lo = mid
+            } else {
+                hi = mid
+            }
         }
-        return track[0].pos
+
+        let before = track[lo]
+        let after = track[hi]
+
+        // Exact match or before first sample
+        if time <= before.time { return before.pos }
+        if time >= after.time { return after.pos }
+        if before.time == after.time { return before.pos }
+
+        // Linear interpolation — zero lag, no smoothing delay
+        let t = CGFloat((time - before.time) / (after.time - before.time))
+        return CGPoint(
+            x: before.pos.x + t * (after.pos.x - before.pos.x),
+            y: before.pos.y + t * (after.pos.y - before.pos.y)
+        )
     }
 
     /// Get the real macOS arrow cursor as a CIImage (scaled up for visibility)
