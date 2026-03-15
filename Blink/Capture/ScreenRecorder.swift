@@ -2,22 +2,24 @@
 import Foundation
 import ScreenCaptureKit
 import AVFoundation
+import CoreVideo
 
 final class ScreenRecorder: NSObject {
     private var stream: SCStream?
     private var assetWriter: AVAssetWriter?
-    private var videoInput: AVAssetWriterInput?
+    private var writerInput: AVAssetWriterInput?
+    private var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
     private var isRecording = false
     private var outputURL: URL?
     private var frameCount = 0
     private var firstTimestamp: CMTime?
-    private var lastNormalizedTimestamp = CMTime.invalid
+    private var lastTimestamp = CMTime.invalid
 
     func start(outputURL: URL, captureAudio: Bool, captureMicrophone: Bool) async throws {
         self.outputURL = outputURL
         frameCount = 0
         firstTimestamp = nil
-        lastNormalizedTimestamp = .invalid
+        lastTimestamp = .invalid
 
         let content = try await SCShareableContent.current
         let mouseLocation = NSEvent.mouseLocation
@@ -29,28 +31,45 @@ final class ScreenRecorder: NSObject {
             return frame.contains(mouseLocation)
         } ?? content.displays.first!
 
-        NSLog("Blink: Capturing display %dx%d", display.width, display.height)
+        let w = display.width
+        let h = display.height
+        NSLog("Blink: Capturing display %dx%d", w, h)
 
         let filter = SCContentFilter(display: display, excludingWindows: [])
         let config = SCStreamConfiguration()
-        config.width = display.width
-        config.height = display.height
+        config.width = w
+        config.height = h
         config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
         config.showsCursor = true
-        // No audio — simplifies recording and prevents corruption
         config.capturesAudio = false
+        // Request BGRA pixel format for compatibility
+        config.pixelFormat = kCVPixelFormatType_32BGRA
 
-        let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mov)
+        let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
 
         let videoSettings: [String: Any] = [
-            AVVideoCodecKey: AVVideoCodecType.h264,
-            AVVideoWidthKey: display.width,
-            AVVideoHeightKey: display.height,
+            AVVideoCodecKey: AVVideoCodecType.hevc,
+            AVVideoWidthKey: w,
+            AVVideoHeightKey: h,
+            AVVideoCompressionPropertiesKey: [
+                AVVideoAverageBitRateKey: 8_000_000,
+                AVVideoExpectedSourceFrameRateKey: 30,
+            ] as [String: Any],
         ]
-        let vInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
-        vInput.expectsMediaDataInRealTime = true
-        writer.add(vInput)
-        videoInput = vInput
+        let input = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
+        input.expectsMediaDataInRealTime = true
+        writer.add(input)
+        writerInput = input
+
+        let adaptor = AVAssetWriterInputPixelBufferAdaptor(
+            assetWriterInput: input,
+            sourcePixelBufferAttributes: [
+                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+                kCVPixelBufferWidthKey as String: w,
+                kCVPixelBufferHeightKey as String: h,
+            ]
+        )
+        pixelBufferAdaptor = adaptor
 
         assetWriter = writer
         writer.startWriting()
@@ -61,7 +80,7 @@ final class ScreenRecorder: NSObject {
         self.stream = stream
         try await stream.startCapture()
         isRecording = true
-        NSLog("Blink: SCStream capture started")
+        NSLog("Blink: Capture started (HEVC, pixel buffer adaptor)")
     }
 
     func stop() async -> URL? {
@@ -75,25 +94,23 @@ final class ScreenRecorder: NSObject {
             self.stream = nil
         }
 
-        videoInput?.markAsFinished()
+        writerInput?.markAsFinished()
 
         if let writer = assetWriter, writer.status == .writing {
             await withCheckedContinuation { continuation in
                 writer.finishWriting {
-                    NSLog("Blink: AVAssetWriter finished, status=%d", writer.status.rawValue)
+                    NSLog("Blink: Writer finished, status=%d", writer.status.rawValue)
                     continuation.resume()
                 }
             }
         } else if let writer = assetWriter {
-            NSLog("Blink: AVAssetWriter status=%d, error=%@", writer.status.rawValue, writer.error?.localizedDescription ?? "none")
+            NSLog("Blink: Writer status=%d, error=%@", writer.status.rawValue, writer.error?.localizedDescription ?? "none")
         }
 
         if let url = outputURL {
             let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? 0
-            NSLog("Blink: Output file size: %d bytes at %@", size, url.path)
-            if size == 0 {
-                return nil
-            }
+            NSLog("Blink: File: %d bytes at %@", size, url.path)
+            if size == 0 { return nil }
         }
 
         return outputURL
@@ -111,45 +128,35 @@ extension ScreenRecorder: SCStreamOutput {
         guard type == .screen else { return }
         guard isRecording, CMSampleBufferDataIsReady(sampleBuffer) else { return }
         guard let writer = assetWriter, writer.status == .writing else { return }
+        guard let adaptor = pixelBufferAdaptor, let input = writerInput else { return }
+
+        // Get pixel buffer from sample buffer
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
         let originalTimestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
 
-        // Record first timestamp as the base offset
         if firstTimestamp == nil {
             firstTimestamp = originalTimestamp
             NSLog("Blink: First frame at %.3f", originalTimestamp.seconds)
         }
 
-        // Normalize to zero-based timestamp
+        // Normalize timestamp to start at zero
         let normalized = originalTimestamp - firstTimestamp!
 
-        // Skip out-of-order frames
-        if lastNormalizedTimestamp.isValid && normalized <= lastNormalizedTimestamp {
+        // Skip out-of-order or duplicate frames
+        if lastTimestamp.isValid && normalized <= lastTimestamp {
             return
         }
-        lastNormalizedTimestamp = normalized
+        lastTimestamp = normalized
 
-        // Create a copy of the sample buffer with the normalized timestamp
-        var timingInfo = CMSampleTimingInfo(
-            duration: CMSampleBufferGetDuration(sampleBuffer),
-            presentationTimeStamp: normalized,
-            decodeTimeStamp: .invalid
-        )
-
-        var newBuffer: CMSampleBuffer?
-        let status = CMSampleBufferCreateCopyWithNewTiming(
-            allocator: nil,
-            sampleBuffer: sampleBuffer,
-            sampleTimingEntryCount: 1,
-            sampleTimingArray: &timingInfo,
-            sampleBufferOut: &newBuffer
-        )
-
-        guard status == noErr, let buffer = newBuffer else { return }
-
-        if let videoInput, videoInput.isReadyForMoreMediaData {
-            videoInput.append(buffer)
-            frameCount += 1
+        // Write pixel buffer through adaptor
+        if input.isReadyForMoreMediaData {
+            let success = adaptor.append(pixelBuffer, withPresentationTime: normalized)
+            if success {
+                frameCount += 1
+            } else {
+                NSLog("Blink: Frame append failed at %.3f, writer status=%d", normalized.seconds, writer.status.rawValue)
+            }
         }
     }
 }
