@@ -25,6 +25,7 @@
 		B10000000000000000000112 /* ZoomEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000113 /* ZoomEngineTests.swift */; };
 		B10000000000000000000114 /* Compositor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000115 /* Compositor.swift */; };
 		B10000000000000000000116 /* CompositorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000117 /* CompositorTests.swift */; };
+		B10000000000000000000118 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000119 /* Settings.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -50,6 +51,7 @@
 		B10000000000000000000113 /* ZoomEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomEngineTests.swift; sourceTree = "<group>"; };
 		B10000000000000000000115 /* Compositor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Compositor.swift; sourceTree = "<group>"; };
 		B10000000000000000000117 /* CompositorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompositorTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000119 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -144,6 +146,7 @@
 			isa = PBXGroup;
 			children = (
 				B10000000000000000000108 /* StorageManager.swift */,
+				B10000000000000000000119 /* Settings.swift */,
 			);
 			path = Storage;
 			sourceTree = "<group>";
@@ -272,6 +275,7 @@
 				B1000000000000000000000E /* SpeedMapper.swift in Sources */,
 				B10000000000000000000110 /* ZoomEngine.swift in Sources */,
 				B10000000000000000000114 /* Compositor.swift in Sources */,
+				B10000000000000000000118 /* Settings.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
