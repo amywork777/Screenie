@@ -133,15 +133,17 @@ final class SimpleEditor {
 
             guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { continue }
 
-            // 1. Draw cursor onto the frame
+            // 1. Draw cursor + click highlight onto the frame
             let cursorPos = cursorPositionAt(time: relativeTime, track: cursorTrack)
+            let highlight = clickHighlightAt(time: relativeTime, clicks: clicks)
             let withCursor = drawCursor(
                 on: pixelBuffer,
                 cursorImage: cursorImage,
                 position: cursorPos,
                 screenSize: naturalSize,
                 context: ciContext,
-                adaptor: adaptor
+                adaptor: adaptor,
+                clickHighlight: highlight
             )
 
             // 2. Apply zoom if needed
@@ -350,83 +352,132 @@ final class SimpleEditor {
         return timeline[idx].state
     }
 
-    // MARK: - Cursor rendering
+    // MARK: - Cursor rendering (Screen Studio style)
 
+    /// Build smoothed cursor track — reconstructs path with cubic interpolation
+    /// instead of using raw jittery mouse positions
     private func buildCursorTrack(from events: [LoggedEvent]) -> [(time: TimeInterval, pos: CGPoint)] {
-        var track: [(time: TimeInterval, pos: CGPoint)] = []
+        var raw: [(time: TimeInterval, pos: CGPoint)] = []
         for event in events {
             if let x = event.x, let y = event.y {
-                track.append((time: event.timestamp, pos: CGPoint(x: x, y: y)))
+                raw.append((time: event.timestamp, pos: CGPoint(x: x, y: y)))
             }
         }
-        return track.sorted { $0.time < $1.time }
+        raw.sort { $0.time < $1.time }
+        guard raw.count >= 2 else { return raw }
+
+        // Resample at 60fps with cubic interpolation for smooth paths
+        var smoothed: [(time: TimeInterval, pos: CGPoint)] = []
+        let step = 1.0 / 60.0
+        var t = raw[0].time
+
+        while t <= (raw.last?.time ?? 0) {
+            let pos = interpolatedPosition(at: t, track: raw)
+            smoothed.append((time: t, pos: pos))
+            t += step
+        }
+
+        return smoothed
+    }
+
+    /// Cubic Hermite interpolation between track points for smooth cursor movement
+    private func interpolatedPosition(at time: TimeInterval, track: [(time: TimeInterval, pos: CGPoint)]) -> CGPoint {
+        // Find surrounding points
+        var i1 = 0
+        for i in 0..<track.count {
+            if track[i].time > time { break }
+            i1 = i
+        }
+        let i2 = min(i1 + 1, track.count - 1)
+
+        if i1 == i2 { return track[i1].pos }
+
+        let t1 = track[i1].time
+        let t2 = track[i2].time
+        let progress = (time - t1) / (t2 - t1)
+
+        // Smoothstep for natural easing between points
+        let t = progress * progress * (3.0 - 2.0 * progress)
+
+        let x = track[i1].pos.x + CGFloat(t) * (track[i2].pos.x - track[i1].pos.x)
+        let y = track[i1].pos.y + CGFloat(t) * (track[i2].pos.y - track[i1].pos.y)
+        return CGPoint(x: x, y: y)
     }
 
     private func cursorPositionAt(time: TimeInterval, track: [(time: TimeInterval, pos: CGPoint)]) -> CGPoint {
         guard !track.isEmpty else { return .zero }
+        // Find closest entry
         if let entry = track.last(where: { $0.time <= time }) {
             return entry.pos
         }
         return track[0].pos
     }
 
-    /// Renders a macOS-style cursor arrow as a CIImage
+    /// Get the real macOS arrow cursor as a CIImage (scaled up for visibility)
     private func renderCursorImage() -> CIImage {
-        let size = NSSize(width: 24, height: 28)
-        let image = NSImage(size: size, flipped: false) { rect in
-            // Arrow cursor shape
-            let path = NSBezierPath()
-            path.move(to: NSPoint(x: 2, y: 26))    // top-left (tip)
-            path.line(to: NSPoint(x: 2, y: 2))      // bottom-left
-            path.line(to: NSPoint(x: 9, y: 9))      // inner right
-            path.line(to: NSPoint(x: 15, y: 2))     // bottom-right arm
-            path.line(to: NSPoint(x: 18, y: 5))     // outer right arm
-            path.line(to: NSPoint(x: 12, y: 12))    // inner junction
-            path.line(to: NSPoint(x: 20, y: 12))    // right arm
-            path.close()
+        let cursor = NSCursor.arrow
+        let cursorImage = cursor.image
+        let hotspot = cursor.hotSpot
 
-            // Black border
-            NSColor.black.setStroke()
-            path.lineWidth = 2.0
-            path.stroke()
+        // Scale cursor up for better visibility in recordings (like Screen Studio)
+        let scale: CGFloat = 1.5
+        let scaledSize = NSSize(
+            width: cursorImage.size.width * scale,
+            height: cursorImage.size.height * scale
+        )
 
-            // White fill
-            NSColor.white.setFill()
-            path.fill()
-
+        let rendered = NSImage(size: scaledSize, flipped: false) { rect in
+            cursorImage.draw(in: rect)
             return true
         }
 
-        // Convert to CIImage
-        guard let tiffData = image.tiffRepresentation,
+        guard let tiffData = rendered.tiffRepresentation,
               let ciImage = CIImage(data: tiffData) else {
             return CIImage.empty()
         }
+
+        // Store hotspot offset for positioning (scaled)
+        cursorHotspot = CGPoint(x: hotspot.x * scale, y: hotspot.y * scale)
+        cursorSize = scaledSize
+
         return ciImage
     }
 
-    /// Draws cursor onto a pixel buffer, returns a new buffer with the cursor composited
+    private var cursorHotspot = CGPoint.zero
+    private var cursorSize = NSSize.zero
+
+    /// Composite cursor + optional click highlight onto a frame
     private func drawCursor(
         on pixelBuffer: CVPixelBuffer,
         cursorImage: CIImage,
         position: CGPoint,
         screenSize: CGSize,
         context: CIContext,
-        adaptor: AVAssetWriterInputPixelBufferAdaptor
+        adaptor: AVAssetWriterInputPixelBufferAdaptor,
+        clickHighlight: CIImage? = nil
     ) -> CVPixelBuffer {
         let baseImage = CIImage(cvPixelBuffer: pixelBuffer)
 
-        // Convert Cocoa coords (Y from bottom) to CIImage coords (also Y from bottom)
-        // Position the cursor with its tip at the cursor location
-        let cursorX = position.x
-        let cursorY = position.y - 28  // offset so tip is at position
+        // Position cursor with hotspot at the cursor location
+        // CIImage Y = Cocoa Y (both bottom-up)
+        let cursorX = position.x - cursorHotspot.x
+        let cursorY = position.y - (cursorSize.height - cursorHotspot.y)
 
+        var composited = baseImage
+
+        // Draw click highlight first (behind cursor)
+        if let highlight = clickHighlight {
+            let highlightPos = highlight
+                .transformed(by: CGAffineTransform(translationX: position.x - 20, y: position.y - 20))
+            composited = highlightPos.composited(over: composited)
+        }
+
+        // Draw cursor on top
         let positioned = cursorImage
             .transformed(by: CGAffineTransform(translationX: cursorX, y: cursorY))
+        composited = positioned.composited(over: composited)
 
-        let composited = positioned.composited(over: baseImage)
-
-        // Render to new buffer
+        // Render to output buffer
         guard let pool = adaptor.pixelBufferPool else { return pixelBuffer }
         var outputBuffer: CVPixelBuffer?
         CVPixelBufferPoolCreatePixelBuffer(nil, pool, &outputBuffer)
@@ -435,6 +486,39 @@ final class SimpleEditor {
         let renderRect = CGRect(origin: .zero, size: screenSize)
         context.render(composited, to: output, bounds: renderRect, colorSpace: CGColorSpaceCreateDeviceRGB())
         return output
+    }
+
+    /// Render a click highlight ring (expanding circle that fades)
+    private func clickHighlightAt(time: TimeInterval, clicks: [LoggedEvent]) -> CIImage? {
+        for click in clicks {
+            let dt = time - click.timestamp
+            guard dt >= 0 && dt < 0.4 else { continue } // 0.4s animation
+
+            let progress = CGFloat(dt / 0.4)
+            let radius = 8 + progress * 20  // expanding ring
+            let opacity = 1.0 - progress     // fading out
+            let size = CGFloat(40)
+
+            let highlight = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
+                NSColor(white: 1.0, alpha: opacity * 0.6).setStroke()
+                let circle = NSBezierPath(
+                    ovalIn: NSRect(
+                        x: size / 2 - radius,
+                        y: size / 2 - radius,
+                        width: radius * 2,
+                        height: radius * 2
+                    )
+                )
+                circle.lineWidth = 2.5
+                circle.stroke()
+                return true
+            }
+
+            guard let tiffData = highlight.tiffRepresentation,
+                  let ciImage = CIImage(data: tiffData) else { continue }
+            return ciImage
+        }
+        return nil
     }
 
     // MARK: - Speed mapping
