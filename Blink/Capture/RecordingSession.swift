@@ -24,8 +24,10 @@ final class RecordingSession {
         sessionDir = dir
         let videoURL = dir.appendingPathComponent("raw.mov")
 
-        eventLogger.start()
+        // Start recorder first — ScreenCaptureKit takes time to initialize
+        // Then start event logger so clocks are synced with first video frame
         try await recorder.start(outputURL: videoURL, captureAudio: captureAudio, captureMicrophone: captureMicrophone)
+        eventLogger.start()
 
         // Start mic recording separately
         if captureMicrophone {
