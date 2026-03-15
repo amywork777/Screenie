@@ -12,11 +12,15 @@ final class ScreenRecorder: NSObject {
     private var sessionStarted = false
     private var outputURL: URL?
     private var frameCount = 0
+    private var lastVideoTimestamp = CMTime.invalid
+    private var lastAudioTimestamp = CMTime.invalid
 
     func start(outputURL: URL, captureAudio: Bool, captureMicrophone: Bool) async throws {
         self.outputURL = outputURL
         sessionStarted = false
         frameCount = 0
+        lastVideoTimestamp = .invalid
+        lastAudioTimestamp = .invalid
 
         let content = try await SCShareableContent.current
         let mouseLocation = NSEvent.mouseLocation
@@ -135,13 +139,24 @@ extension ScreenRecorder: SCStreamOutput {
             NSLog("Blink: Session started at timestamp %.3f", timestamp.seconds)
         }
 
+        let timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+
         switch type {
         case .screen:
+            // Skip out-of-order frames
+            if lastVideoTimestamp.isValid && timestamp <= lastVideoTimestamp {
+                return
+            }
+            lastVideoTimestamp = timestamp
             if let videoInput, videoInput.isReadyForMoreMediaData {
                 videoInput.append(sampleBuffer)
                 frameCount += 1
             }
         case .audio:
+            if lastAudioTimestamp.isValid && timestamp <= lastAudioTimestamp {
+                return
+            }
+            lastAudioTimestamp = timestamp
             if let audioInput, audioInput.isReadyForMoreMediaData {
                 audioInput.append(sampleBuffer)
             }

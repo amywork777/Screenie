@@ -14,10 +14,28 @@ final class SimpleEditor {
     }
 
     func process(videoURL: URL, events: [LoggedEvent], outputURL: URL) async throws -> Output {
-        let asset = AVURLAsset(url: videoURL)
-        let duration = try await asset.load(.duration)
+        let asset = AVURLAsset(url: videoURL, options: [
+            AVURLAssetPreferPreciseDurationAndTimingKey: true
+        ])
+
+        // Try loading duration — if it fails, estimate from events
+        let duration: CMTime
+        do {
+            duration = try await asset.load(.duration)
+        } catch {
+            NSLog("Blink: Could not load duration, estimating from events")
+            let maxEventTime = events.map(\.timestamp).max() ?? 5.0
+            duration = CMTime(seconds: maxEventTime + 0.5, preferredTimescale: 600)
+        }
         let durationSecs = duration.seconds
-        let videoTracks = try await asset.loadTracks(withMediaType: .video)
+
+        let videoTracks: [AVAssetTrack]
+        do {
+            videoTracks = try await asset.loadTracks(withMediaType: .video)
+        } catch {
+            NSLog("Blink: Could not load video tracks: %@", error.localizedDescription)
+            throw error
+        }
 
         guard let sourceVideoTrack = videoTracks.first else {
             throw NSError(domain: "Blink", code: 1, userInfo: [NSLocalizedDescriptionKey: "No video track"])
