@@ -12,6 +12,7 @@
 		B10000000000000000000003 /* BlinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000103 /* BlinkTests.swift */; };
 		B10000000000000000000004 /* InputState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000105 /* InputState.swift */; };
 		B10000000000000000000005 /* InputStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000106 /* InputStateTests.swift */; };
+		B10000000000000000000006 /* HotkeyListener.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000107 /* HotkeyListener.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +25,7 @@
 		B10000000000000000000104 /* Blink.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Blink.entitlements; sourceTree = "<group>"; };
 		B10000000000000000000105 /* InputState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputState.swift; sourceTree = "<group>"; };
 		B10000000000000000000106 /* InputStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputStateTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000107 /* HotkeyListener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyListener.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				B10000000000000000000105 /* InputState.swift */,
+				B10000000000000000000107 /* HotkeyListener.swift */,
 			);
 			path = Input;
 			sourceTree = "<group>";
@@ -224,6 +227,7 @@
 				B10000000000000000000001 /* BlinkApp.swift in Sources */,
 				B10000000000000000000002 /* AppDelegate.swift in Sources */,
 				B10000000000000000000004 /* InputState.swift in Sources */,
+				B10000000000000000000006 /* HotkeyListener.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
