@@ -9,7 +9,7 @@ final class InputStateTests: XCTestCase {
         state = InputState()
     }
 
-    // MARK: - Hold-to-record path
+    // MARK: - Basic states
 
     func testStartsIdle() {
         XCTAssertEqual(state.current, .idle)
@@ -21,23 +21,6 @@ final class InputStateTests: XCTestCase {
         XCTAssertNil(action)
     }
 
-    func testHoldBeyondThresholdStartsRecording() {
-        _ = state.handleKeyDown()
-        let action = state.handleHoldTimerFired()
-        XCTAssertEqual(state.current, .holdRecording)
-        XCTAssertEqual(action, .startRecording)
-    }
-
-    func testKeyUpDuringHoldRecordingStops() {
-        _ = state.handleKeyDown()
-        _ = state.handleHoldTimerFired()
-        let action = state.handleKeyUp()
-        XCTAssertEqual(state.current, .idle)
-        XCTAssertEqual(action, .stopRecording)
-    }
-
-    // MARK: - Double-tap path
-
     func testQuickReleaseTransitionsToAwaitSecondTap() {
         _ = state.handleKeyDown()
         let action = state.handleKeyUp()
@@ -45,7 +28,9 @@ final class InputStateTests: XCTestCase {
         XCTAssertNil(action)
     }
 
-    func testSecondTapStartsToggleRecording() {
+    // MARK: - Double-tap to start
+
+    func testDoubleTapStartsRecording() {
         _ = state.handleKeyDown()
         _ = state.handleKeyUp()
         _ = state.handleKeyDown()
@@ -54,8 +39,10 @@ final class InputStateTests: XCTestCase {
         XCTAssertEqual(action, .startRecording)
     }
 
-    func testDoubleTapWhileToggleRecordingStops() {
-        // Start toggle recording
+    // MARK: - Double-tap to stop
+
+    func testDoubleTapWhileRecordingStops() {
+        // Start recording
         _ = state.handleKeyDown()
         _ = state.handleKeyUp()
         _ = state.handleKeyDown()
@@ -71,6 +58,8 @@ final class InputStateTests: XCTestCase {
         XCTAssertEqual(action, .stopRecording)
     }
 
+    // MARK: - Timeouts
+
     func testAwaitSecondTapTimeoutReturnsToIdle() {
         _ = state.handleKeyDown()
         _ = state.handleKeyUp()
@@ -79,31 +68,15 @@ final class InputStateTests: XCTestCase {
         XCTAssertNil(action)
     }
 
-    // MARK: - Edge cases
-
-    func testKeyDownWhileAlreadyRecordingIsIgnored() {
-        _ = state.handleKeyDown()
-        _ = state.handleHoldTimerFired()
-        let action = state.handleKeyDown()
-        XCTAssertEqual(state.current, .holdRecording)
-        XCTAssertNil(action)
-    }
-
-    func testHoldTimerInWrongStateIsIgnored() {
-        let action = state.handleHoldTimerFired()
-        XCTAssertEqual(state.current, .idle)
-        XCTAssertNil(action)
-    }
-
-    func testToggleStopAwaitTimeoutReturnsToToggleRecording() {
-        // Enter toggle recording
+    func testStopAwaitTimeoutReturnsToRecording() {
+        // Start recording
         _ = state.handleKeyDown()
         _ = state.handleKeyUp()
         _ = state.handleKeyDown()
         _ = state.handleKeyUp()
         XCTAssertEqual(state.current, .toggleRecording)
 
-        // Single tap (not double) — should timeout back to toggleRecording
+        // Single tap (not double) — timeout back to recording
         _ = state.handleKeyDown()
         _ = state.handleKeyUp()
         XCTAssertEqual(state.current, .toggleStopAwait)
@@ -111,5 +84,14 @@ final class InputStateTests: XCTestCase {
         let action = state.handleDoubleTapTimerFired()
         XCTAssertEqual(state.current, .toggleRecording)
         XCTAssertNil(action)
+    }
+
+    // MARK: - Edge cases
+
+    func testSingleTapDoesNothing() {
+        _ = state.handleKeyDown()
+        _ = state.handleKeyUp()
+        _ = state.handleDoubleTapTimerFired()
+        XCTAssertEqual(state.current, .idle)
     }
 }
