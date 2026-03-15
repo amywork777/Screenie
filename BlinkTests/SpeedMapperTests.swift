@@ -22,10 +22,10 @@ final class SpeedMapperTests: XCTestCase {
 
     func testShortIdleMapsto4x() {
         let segments = [
-            ActivitySegment(activity: .idle, startTime: 0, endTime: 2.0)
+            ActivitySegment(activity: .idle, startTime: 0, endTime: 1.5)
         ]
         let mappings = SpeedMapper.map(segments: segments)
-        XCTAssertEqual(mappings[0].speed, 4.0, accuracy: 0.5)
+        XCTAssertEqual(mappings[0].speed, 4.0, accuracy: 0.01)
     }
 
     func testLongIdleMapsTo8x() {
