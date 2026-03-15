@@ -1,3 +1,4 @@
+// Blink/Capture/EventLogger.swift
 import Foundation
 import CoreGraphics
 import AppKit
@@ -19,28 +20,42 @@ struct LoggedEvent: Codable {
 
 final class EventLogger {
     private var events: [LoggedEvent] = []
-    private var eventTap: CFMachPort?
     private var startTime: TimeInterval = 0
     private var lastWindowName: String?
     private var mousePollTimer: DispatchSourceTimer?
     private var lastMousePosition: CGPoint = .zero
+    private var globalClickMonitor: Any?
+    private var globalKeyMonitor: Any?
+    private var localClickMonitor: Any?
+    private var localKeyMonitor: Any?
 
     func start() {
         events = []
         startTime = CACurrentMediaTime()
         startMousePolling()
-        startEventTap()
+        startEventMonitors()
         observeWindowChanges()
+        NSLog("Blink: EventLogger started")
     }
 
     func stop() -> [LoggedEvent] {
         mousePollTimer?.cancel()
         mousePollTimer = nil
-        if let tap = eventTap {
-            CGEvent.tapEnable(tap: tap, enable: false)
-            eventTap = nil
-        }
-        NotificationCenter.default.removeObserver(self)
+        if let m = globalClickMonitor { NSEvent.removeMonitor(m) }
+        if let m = globalKeyMonitor { NSEvent.removeMonitor(m) }
+        if let m = localClickMonitor { NSEvent.removeMonitor(m) }
+        if let m = localKeyMonitor { NSEvent.removeMonitor(m) }
+        globalClickMonitor = nil
+        globalKeyMonitor = nil
+        localClickMonitor = nil
+        localKeyMonitor = nil
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
+
+        let clickCount = events.filter { $0.type == .mouseClick }.count
+        let keyCount = events.filter { $0.type == .keyPress }.count
+        let moveCount = events.filter { $0.type == .mouseMove }.count
+        NSLog("Blink: EventLogger stopped — %d clicks, %d keys, %d moves", clickCount, keyCount, moveCount)
+
         return events
     }
 
@@ -77,52 +92,43 @@ final class EventLogger {
         mousePollTimer = timer
     }
 
-    private func startEventTap() {
-        let mask: CGEventMask = (1 << CGEventType.leftMouseDown.rawValue)
-            | (1 << CGEventType.keyDown.rawValue)
-
-        guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .tailAppendEventTap,
-            options: .listenOnly,
-            eventsOfInterest: mask,
-            callback: { _, type, event, refcon in
-                let logger = Unmanaged<EventLogger>.fromOpaque(refcon!).takeUnretainedValue()
-                logger.handleTapEvent(type: type, event: event)
-                return Unmanaged.passUnretained(event)
-            },
-            userInfo: Unmanaged.passUnretained(self).toOpaque()
-        ) else { return }
-
-        eventTap = tap
-        let source = CFMachPortCreateRunLoopSource(nil, tap, 0)
-        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
-        CGEvent.tapEnable(tap: tap, enable: true)
+    private func startEventMonitors() {
+        // Global monitors (when other apps are focused)
+        globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+            self?.recordClick(event)
+        }
+        globalKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            self?.recordKeyPress(event)
+        }
+        // Local monitors (when Blink is focused)
+        localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+            self?.recordClick(event)
+            return event
+        }
+        localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            self?.recordKeyPress(event)
+            return event
+        }
     }
 
-    private func handleTapEvent(type: CGEventType, event: CGEvent) {
-        let pos = event.location
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            switch type {
-            case .leftMouseDown:
-                self.events.append(LoggedEvent(
-                    timestamp: self.elapsed,
-                    type: .mouseClick,
-                    x: pos.x, y: pos.y,
-                    windowName: nil
-                ))
-            case .keyDown:
-                self.events.append(LoggedEvent(
-                    timestamp: self.elapsed,
-                    type: .keyPress,
-                    x: nil, y: nil,
-                    windowName: nil
-                ))
-            default:
-                break
-            }
-        }
+    private func recordClick(_ event: NSEvent) {
+        let pos = NSEvent.mouseLocation
+        events.append(LoggedEvent(
+            timestamp: elapsed,
+            type: .mouseClick,
+            x: pos.x, y: pos.y,
+            windowName: nil
+        ))
+        NSLog("Blink: Click at (%.0f, %.0f) t=%.1f", pos.x, pos.y, elapsed)
+    }
+
+    private func recordKeyPress(_ event: NSEvent) {
+        events.append(LoggedEvent(
+            timestamp: elapsed,
+            type: .keyPress,
+            x: nil, y: nil,
+            windowName: nil
+        ))
     }
 
     private func observeWindowChanges() {
