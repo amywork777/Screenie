@@ -7,19 +7,24 @@ import CoreVideo
 final class ScreenRecorder: NSObject {
     private var stream: SCStream?
     private var assetWriter: AVAssetWriter?
-    private var writerInput: AVAssetWriterInput?
+    private var videoWriterInput: AVAssetWriterInput?
+    private var audioWriterInput: AVAssetWriterInput?
     private var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
     private var isRecording = false
     private var outputURL: URL?
     private var frameCount = 0
-    private var firstTimestamp: CMTime?
-    private var lastTimestamp = CMTime.invalid
+    private var audioSampleCount = 0
+    private var firstVideoTimestamp: CMTime?
+    private var firstAudioTimestamp: CMTime?
+    private var lastVideoTimestamp = CMTime.invalid
 
     func start(outputURL: URL, captureAudio: Bool, captureMicrophone: Bool) async throws {
         self.outputURL = outputURL
         frameCount = 0
-        firstTimestamp = nil
-        lastTimestamp = .invalid
+        audioSampleCount = 0
+        firstVideoTimestamp = nil
+        firstAudioTimestamp = nil
+        lastVideoTimestamp = .invalid
 
         let content = try await SCShareableContent.current
         let mouseLocation = NSEvent.mouseLocation
@@ -33,20 +38,24 @@ final class ScreenRecorder: NSObject {
 
         let w = display.width
         let h = display.height
-        NSLog("Blink: Capturing display %dx%d", w, h)
+        NSLog("Blink: Capturing display %dx%d, audio=%d", w, h, captureAudio ? 1 : 0)
 
         let filter = SCContentFilter(display: display, excludingWindows: [])
         let config = SCStreamConfiguration()
         config.width = w
         config.height = h
         config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
-        config.showsCursor = false  // We render our own smoothed cursor in post
-        config.capturesAudio = false
-        // Request BGRA pixel format for compatibility
+        config.showsCursor = false
         config.pixelFormat = kCVPixelFormatType_32BGRA
+        config.capturesAudio = captureAudio
+        if captureAudio {
+            config.sampleRate = 48000
+            config.channelCount = 2
+        }
 
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
 
+        // Video input
         let videoSettings: [String: Any] = [
             AVVideoCodecKey: AVVideoCodecType.hevc,
             AVVideoWidthKey: w,
@@ -56,13 +65,13 @@ final class ScreenRecorder: NSObject {
                 AVVideoExpectedSourceFrameRateKey: 30,
             ] as [String: Any],
         ]
-        let input = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
-        input.expectsMediaDataInRealTime = true
-        writer.add(input)
-        writerInput = input
+        let vInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
+        vInput.expectsMediaDataInRealTime = true
+        writer.add(vInput)
+        videoWriterInput = vInput
 
         let adaptor = AVAssetWriterInputPixelBufferAdaptor(
-            assetWriterInput: input,
+            assetWriterInput: vInput,
             sourcePixelBufferAttributes: [
                 kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
                 kCVPixelBufferWidthKey as String: w,
@@ -71,30 +80,48 @@ final class ScreenRecorder: NSObject {
         )
         pixelBufferAdaptor = adaptor
 
+        // Audio input (AAC encoding, accepts raw PCM from ScreenCaptureKit)
+        if captureAudio {
+            let audioSettings: [String: Any] = [
+                AVFormatIDKey: kAudioFormatMPEG4AAC,
+                AVSampleRateKey: 48000,
+                AVNumberOfChannelsKey: 2,
+                AVEncoderBitRateKey: 128000,
+            ]
+            let aInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
+            aInput.expectsMediaDataInRealTime = true
+            writer.add(aInput)
+            audioWriterInput = aInput
+        }
+
         assetWriter = writer
         writer.startWriting()
         writer.startSession(atSourceTime: .zero)
 
         let stream = SCStream(filter: filter, configuration: config, delegate: self)
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: .global(qos: .userInteractive))
+        if captureAudio {
+            try stream.addStreamOutput(self, type: .audio, sampleHandlerQueue: .global(qos: .userInteractive))
+        }
         self.stream = stream
         try await stream.startCapture()
         isRecording = true
-        NSLog("Blink: Capture started (HEVC, pixel buffer adaptor)")
+        NSLog("Blink: Capture started (HEVC + %@)", captureAudio ? "AAC audio" : "no audio")
     }
 
     func stop() async -> URL? {
         guard isRecording else { return nil }
         isRecording = false
 
-        NSLog("Blink: Stopping capture, %d frames written", frameCount)
+        NSLog("Blink: Stopping — %d video frames, %d audio samples", frameCount, audioSampleCount)
 
         if let stream {
             try? await stream.stopCapture()
             self.stream = nil
         }
 
-        writerInput?.markAsFinished()
+        videoWriterInput?.markAsFinished()
+        audioWriterInput?.markAsFinished()
 
         if let writer = assetWriter, writer.status == .writing {
             await withCheckedContinuation { continuation in
@@ -125,38 +152,74 @@ extension ScreenRecorder: SCStreamDelegate {
 
 extension ScreenRecorder: SCStreamOutput {
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
-        guard type == .screen else { return }
         guard isRecording, CMSampleBufferDataIsReady(sampleBuffer) else { return }
         guard let writer = assetWriter, writer.status == .writing else { return }
-        guard let adaptor = pixelBufferAdaptor, let input = writerInput else { return }
-
-        // Get pixel buffer from sample buffer
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
         let originalTimestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
 
-        if firstTimestamp == nil {
-            firstTimestamp = originalTimestamp
-            NSLog("Blink: First frame at %.3f", originalTimestamp.seconds)
+        switch type {
+        case .screen:
+            handleVideoSample(sampleBuffer, timestamp: originalTimestamp)
+        case .audio:
+            handleAudioSample(sampleBuffer, timestamp: originalTimestamp)
+        @unknown default:
+            break
+        }
+    }
+
+    private func handleVideoSample(_ sampleBuffer: CMSampleBuffer, timestamp: CMTime) {
+        guard let adaptor = pixelBufferAdaptor, let input = videoWriterInput else { return }
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+
+        if firstVideoTimestamp == nil {
+            firstVideoTimestamp = timestamp
+            NSLog("Blink: First video frame at %.3f", timestamp.seconds)
         }
 
-        // Normalize timestamp to start at zero
-        let normalized = originalTimestamp - firstTimestamp!
+        let normalized = timestamp - firstVideoTimestamp!
 
-        // Skip out-of-order or duplicate frames
-        if lastTimestamp.isValid && normalized <= lastTimestamp {
-            return
-        }
-        lastTimestamp = normalized
+        // Skip out-of-order frames
+        if lastVideoTimestamp.isValid && normalized <= lastVideoTimestamp { return }
+        lastVideoTimestamp = normalized
 
-        // Write pixel buffer through adaptor
         if input.isReadyForMoreMediaData {
-            let success = adaptor.append(pixelBuffer, withPresentationTime: normalized)
-            if success {
+            if adaptor.append(pixelBuffer, withPresentationTime: normalized) {
                 frameCount += 1
-            } else {
-                NSLog("Blink: Frame append failed at %.3f, writer status=%d", normalized.seconds, writer.status.rawValue)
             }
+        }
+    }
+
+    private func handleAudioSample(_ sampleBuffer: CMSampleBuffer, timestamp: CMTime) {
+        guard let input = audioWriterInput else { return }
+
+        if firstAudioTimestamp == nil {
+            firstAudioTimestamp = timestamp
+            NSLog("Blink: First audio sample at %.3f", timestamp.seconds)
+        }
+
+        // Normalize audio timestamp relative to first audio sample
+        let normalized = timestamp - firstAudioTimestamp!
+
+        // Create retimed audio sample buffer
+        var timingInfo = CMSampleTimingInfo(
+            duration: CMSampleBufferGetDuration(sampleBuffer),
+            presentationTimeStamp: normalized,
+            decodeTimeStamp: .invalid
+        )
+        var retimed: CMSampleBuffer?
+        CMSampleBufferCreateCopyWithNewTiming(
+            allocator: nil,
+            sampleBuffer: sampleBuffer,
+            sampleTimingEntryCount: 1,
+            sampleTimingArray: &timingInfo,
+            sampleBufferOut: &retimed
+        )
+
+        guard let audioBuffer = retimed else { return }
+
+        if input.isReadyForMoreMediaData {
+            input.append(audioBuffer)
+            audioSampleCount += 1
         }
     }
 }
