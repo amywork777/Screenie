@@ -155,7 +155,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     recordingIndicator.hide()
                     copyFileToClipboard(archiveURL)
                     menuBar.refreshMenu()
-                    showSavedNotification(url: archiveURL, original: output.originalDuration, edited: output.editedDuration)
+
+                    // Show preview HUD
+                    let hud = PreviewHUD()
+                    hud.hudDelegate = self
+                    hud.show(clipboardURL: archiveURL, archiveURL: archiveURL, duration: output.editedDuration)
+                    previewHUD = hud
                 }
             } catch {
                 NSLog("Blink: Auto-edit failed: %@, saving raw instead", "\(error)")
@@ -165,7 +170,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     recordingIndicator.hide()
                     copyFileToClipboard(archiveURL)
                     menuBar.refreshMenu()
-                    showSavedNotification(url: archiveURL, original: 0, edited: 0)
+
+                    let hud = PreviewHUD()
+                    hud.hudDelegate = self
+                    hud.show(clipboardURL: archiveURL, archiveURL: archiveURL, duration: 0)
+                    previewHUD = hud
                 }
             }
 
