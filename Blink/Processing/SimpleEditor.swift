@@ -73,11 +73,19 @@ final class SimpleEditor {
         let readerOutput = AVAssetReaderTrackOutput(track: sourceVideoTrack, outputSettings: readerSettings)
         reader.add(readerOutput)
 
-        // Audio reader (if audio track exists)
+        // Audio reader (decode to PCM so we can re-encode)
         var audioReaderOutput: AVAssetReaderTrackOutput?
         let audioTracks = try await asset.loadTracks(withMediaType: .audio)
         if let audioTrack = audioTracks.first {
-            let audioOutput = AVAssetReaderTrackOutput(track: audioTrack, outputSettings: nil) // passthrough
+            let audioOutput = AVAssetReaderTrackOutput(track: audioTrack, outputSettings: [
+                AVFormatIDKey: kAudioFormatLinearPCM,
+                AVSampleRateKey: 48000,
+                AVNumberOfChannelsKey: 2,
+                AVLinearPCMBitDepthKey: 32,
+                AVLinearPCMIsFloatKey: true,
+                AVLinearPCMIsBigEndianKey: false,
+                AVLinearPCMIsNonInterleaved: false,
+            ])
             reader.add(audioOutput)
             audioReaderOutput = audioOutput
             NSLog("Blink: Audio track found, will include in output")
@@ -103,10 +111,15 @@ final class SimpleEditor {
         )
         writer.add(writerInput)
 
-        // Audio writer (passthrough — no re-encoding)
+        // Audio writer (AAC encoding)
         var audioWriterInput: AVAssetWriterInput?
         if audioReaderOutput != nil {
-            let aInput = AVAssetWriterInput(mediaType: .audio, outputSettings: nil) // passthrough
+            let aInput = AVAssetWriterInput(mediaType: .audio, outputSettings: [
+                AVFormatIDKey: kAudioFormatMPEG4AAC,
+                AVSampleRateKey: 48000,
+                AVNumberOfChannelsKey: 2,
+                AVEncoderBitRateKey: 128000,
+            ])
             aInput.expectsMediaDataInRealTime = false
             writer.add(aInput)
             audioWriterInput = aInput
