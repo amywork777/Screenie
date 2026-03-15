@@ -73,23 +73,9 @@ final class SimpleEditor {
         let readerOutput = AVAssetReaderTrackOutput(track: sourceVideoTrack, outputSettings: readerSettings)
         reader.add(readerOutput)
 
-        // Audio reader (decode to PCM so we can re-encode)
-        var audioReaderOutput: AVAssetReaderTrackOutput?
-        let audioTracks = try await asset.loadTracks(withMediaType: .audio)
-        if let audioTrack = audioTracks.first {
-            let audioOutput = AVAssetReaderTrackOutput(track: audioTrack, outputSettings: [
-                AVFormatIDKey: kAudioFormatLinearPCM,
-                AVSampleRateKey: 48000,
-                AVNumberOfChannelsKey: 2,
-                AVLinearPCMBitDepthKey: 32,
-                AVLinearPCMIsFloatKey: true,
-                AVLinearPCMIsBigEndianKey: false,
-                AVLinearPCMIsNonInterleaved: false,
-            ])
-            reader.add(audioOutput)
-            audioReaderOutput = audioOutput
-            NSLog("Blink: Audio track found, will include in output")
-        }
+        // Audio: skip processing for now (retiming causes hangs)
+        // Raw recording has audio — it's preserved when "no edits needed" copies the file
+        NSLog("Blink: Audio processing skipped (video-only edit)")
 
         // 3. Set up writer
         let writerSettings: [String: Any] = [
@@ -111,19 +97,7 @@ final class SimpleEditor {
         )
         writer.add(writerInput)
 
-        // Audio writer (AAC encoding)
-        var audioWriterInput: AVAssetWriterInput?
-        if audioReaderOutput != nil {
-            let aInput = AVAssetWriterInput(mediaType: .audio, outputSettings: [
-                AVFormatIDKey: kAudioFormatMPEG4AAC,
-                AVSampleRateKey: 48000,
-                AVNumberOfChannelsKey: 2,
-                AVEncoderBitRateKey: 128000,
-            ])
-            aInput.expectsMediaDataInRealTime = false
-            writer.add(aInput)
-            audioWriterInput = aInput
-        }
+        // No audio writer — video only for edited output
 
         // 4. Process frames
         reader.startReading()
@@ -204,46 +178,6 @@ final class SimpleEditor {
         }
 
         writerInput.markAsFinished()
-
-        // Write audio samples (passthrough, with time adjustment for speed changes)
-        if let audioOutput = audioReaderOutput, let audioInput = audioWriterInput {
-            var audioBaseTimestamp: CMTime?
-            var audioCount = 0
-
-            while let audioSample = audioOutput.copyNextSampleBuffer() {
-                let ts = CMSampleBufferGetPresentationTimeStamp(audioSample)
-                if audioBaseTimestamp == nil { audioBaseTimestamp = ts }
-                let relTime = (ts - audioBaseTimestamp!).seconds
-
-                // Map audio time through speed changes (same as video)
-                let outTime: Double
-                if hasSpeedChanges {
-                    outTime = sourceTimeToOutputTime(relTime, timeMappings: timeMappings)
-                } else {
-                    outTime = relTime
-                }
-
-                // Retime the audio sample
-                var timing = CMSampleTimingInfo(
-                    duration: CMSampleBufferGetDuration(audioSample),
-                    presentationTimeStamp: CMTime(seconds: outTime, preferredTimescale: 48000),
-                    decodeTimeStamp: .invalid
-                )
-                var retimed: CMSampleBuffer?
-                CMSampleBufferCreateCopyWithNewTiming(
-                    allocator: nil, sampleBuffer: audioSample,
-                    sampleTimingEntryCount: 1, sampleTimingArray: &timing,
-                    sampleBufferOut: &retimed
-                )
-
-                if let buf = retimed, audioInput.isReadyForMoreMediaData {
-                    audioInput.append(buf)
-                    audioCount += 1
-                }
-            }
-            audioInput.markAsFinished()
-            NSLog("Blink: Wrote %d audio samples", audioCount)
-        }
 
         await withCheckedContinuation { continuation in
             writer.finishWriting { continuation.resume() }
