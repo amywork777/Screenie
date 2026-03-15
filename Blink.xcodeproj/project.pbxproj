@@ -15,6 +15,8 @@
 		B10000000000000000000006 /* HotkeyListener.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000107 /* HotkeyListener.swift */; };
 		B10000000000000000000007 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000108 /* StorageManager.swift */; };
 		B10000000000000000000008 /* EventLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000109 /* EventLogger.swift */; };
+		B10000000000000000000009 /* ScreenRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000010A /* ScreenRecorder.swift */; };
+		B1000000000000000000000A /* RecordingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000010B /* RecordingSession.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +32,8 @@
 		B10000000000000000000107 /* HotkeyListener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyListener.swift; sourceTree = "<group>"; };
 		B10000000000000000000108 /* StorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageManager.swift; sourceTree = "<group>"; };
 		B10000000000000000000109 /* EventLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventLogger.swift; sourceTree = "<group>"; };
+		B1000000000000000000010A /* ScreenRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenRecorder.swift; sourceTree = "<group>"; };
+		B1000000000000000000010B /* RecordingSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingSession.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,6 +100,8 @@
 			isa = PBXGroup;
 			children = (
 				B10000000000000000000109 /* EventLogger.swift */,
+				B1000000000000000000010A /* ScreenRecorder.swift */,
+				B1000000000000000000010B /* RecordingSession.swift */,
 			);
 			path = Capture;
 			sourceTree = "<group>";
@@ -236,6 +242,8 @@
 				B10000000000000000000006 /* HotkeyListener.swift in Sources */,
 				B10000000000000000000007 /* StorageManager.swift in Sources */,
 				B10000000000000000000008 /* EventLogger.swift in Sources */,
+				B10000000000000000000009 /* ScreenRecorder.swift in Sources */,
+				B1000000000000000000000A /* RecordingSession.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
