@@ -176,110 +176,149 @@ h1 {
   margin-top: 8px;
 }
 
-/* Demo — 6s loop, 3 phases, dead simple */
+/* Demo — interactive tabs */
 .demo-section {
-  max-width: 1080px;
+  max-width: 680px;
   margin: 72px auto 0;
   padding: 0 32px;
 }
 
-.demo-frame {
-  background: #0e0e12;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid #222;
-  position: relative;
-}
-
-.demo-bar {
+.demo-tabs {
   display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 12px 16px;
-  background: rgba(255,255,255,0.03);
-}
-.dot { width: 10px; height: 10px; border-radius: 50%; }
-.dot-r { background: #ff5f57; }
-.dot-y { background: #febc2e; }
-.dot-g { background: #28c840; }
-
-.demo-body {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  min-height: 280px;
+  gap: 4px;
+  margin-bottom: 0;
+  background: #f0eeec;
+  padding: 4px;
+  border-radius: 12px 12px 0 0;
 }
 
-.demo-phase {
+.demo-tab {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-family: 'Satoshi', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all 0.2s;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 24px;
-  position: relative;
-  border-right: 1px solid rgba(255,255,255,0.05);
-}
-.demo-phase:last-child { border-right: none; }
-
-.demo-step-num {
-  font-size: 10px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.25);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  margin-bottom: 20px;
+  gap: 8px;
 }
 
-.demo-phase h3 {
+.demo-tab:hover { color: var(--text-2); }
+
+.demo-tab.active {
+  background: #fff;
+  color: var(--accent);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.tab-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--text-3);
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.demo-tab.active .tab-num {
+  background: var(--accent);
   color: #fff;
-  font-size: 13px;
-  font-weight: 500;
-  text-align: center;
-  margin-top: 16px;
-  line-height: 1.4;
 }
 
-.demo-phase p {
-  color: rgba(255,255,255,0.35);
-  font-size: 11px;
-  text-align: center;
-  margin-top: 6px;
+.demo-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+  overflow: hidden;
+}
+
+.demo-visual {
+  background: linear-gradient(135deg, #fce4ec, #f8e8f0, #ede7f6);
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.step-vis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.demo-text {
+  padding: 24px 28px;
+  border-top: 1px solid var(--border);
+}
+
+.demo-text h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.demo-text p {
+  font-size: 0.9rem;
+  color: var(--text-2);
   font-weight: 300;
+  line-height: 1.5;
 }
 
 /* Phase 1: Key tap */
 .demo-key {
-  padding: 12px 24px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 10px;
-  color: #fff;
-  font-size: 15px;
+  padding: 14px 32px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 16px;
   font-weight: 600;
   font-family: 'Satoshi', sans-serif;
   animation: tapKey 2s ease-in-out infinite;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
 @keyframes tapKey {
-  0%, 100% { background: rgba(255,255,255,0.07); transform: scale(1); }
-  20%, 30% { background: rgba(155,127,212,0.5); transform: scale(0.93); box-shadow: 0 0 20px rgba(155,127,212,0.3); }
-  45%, 55% { background: rgba(255,255,255,0.07); transform: scale(1); }
-  65%, 75% { background: rgba(155,127,212,0.5); transform: scale(0.93); box-shadow: 0 0 20px rgba(155,127,212,0.3); }
+  0%, 100% { background: #fff; transform: scale(1); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  20%, 30% { background: var(--accent-soft); transform: scale(0.94); box-shadow: 0 0 20px rgba(232,77,109,0.2); border-color: var(--accent); }
+  45%, 55% { background: #fff; transform: scale(1); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  65%, 75% { background: var(--accent-soft); transform: scale(0.94); box-shadow: 0 0 20px rgba(232,77,109,0.2); border-color: var(--accent); }
 }
 
 /* Phase 2: Recording mockup */
 .demo-rec-box {
-  width: 120px;
-  height: 80px;
+  width: 160px;
+  height: 100px;
   background: linear-gradient(135deg, #1a1a2e, #16213e);
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.1);
   position: relative;
   overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
 }
 
 .demo-rec-pill {
   position: absolute;
-  top: 5px;
+  top: 6px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(0,0,0,0.6);
@@ -408,30 +447,8 @@ h1 {
 }
 .demo-hud-act:last-child { border-right: none; color: rgba(255,255,255,0.35); }
 
-/* Arrow between phases */
-.demo-arrow {
-  position: absolute;
-  right: -7px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: rgba(255,255,255,0.12);
-  font-size: 12px;
-  z-index: 5;
-}
-
-/* Caption */
-.demo-caption {
-  text-align: center;
-  margin-top: 20px;
-  color: var(--text-3);
-  font-size: 0.85rem;
-  font-weight: 300;
-}
-
 @media (max-width: 768px) {
-  .demo-body { grid-template-columns: 1fr; }
-  .demo-phase { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 28px 24px; }
-  .demo-arrow { display: none; }
+  .demo-tabs { flex-direction: row; }
 }
 
 /* Divider */
@@ -510,69 +527,6 @@ h1 {
   background: var(--bg);
 }
 
-/* How */
-.how {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 0 32px;
-}
-
-.how h2 {
-  font-family: 'Instrument Serif', serif;
-  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
-  font-weight: 400;
-  letter-spacing: -0.025em;
-  margin-bottom: 48px;
-  line-height: 1.15;
-}
-
-.steps-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 32px;
-}
-
-.step-card {
-  position: relative;
-  padding-left: 20px;
-  border-left: 2px solid var(--border);
-}
-
-.step-card.active { border-left-color: var(--accent); }
-
-.step-num {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 10px;
-}
-
-.step-card.active .step-num { color: var(--accent); }
-
-.step-card h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.step-card p {
-  font-size: 0.88rem;
-  color: var(--text-2);
-  font-weight: 300;
-  line-height: 1.5;
-}
-
-.step-card kbd {
-  display: inline-block;
-  padding: 2px 7px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-family: 'SF Mono', monospace;
-  font-size: 0.78rem;
-}
 
 /* Open source */
 .oss {
@@ -729,65 +683,40 @@ footer a:hover { color: var(--text); }
   </div>
 </section>
 
-<div class="demo-section">
-  <div class="demo-frame">
-    <div class="demo-bar">
-      <div class="dot dot-r"></div>
-      <div class="dot dot-y"></div>
-      <div class="dot dot-g"></div>
-    </div>
-    <div class="demo-body">
-
-      <!-- Step 1: Trigger -->
-      <div class="demo-phase">
-        <div class="demo-step-num">Step 1</div>
+<div class="demo-section" id="how">
+  <div class="demo-tabs">
+    <button class="demo-tab active" onclick="showStep(1)"><span class="tab-num">1</span> Start</button>
+    <button class="demo-tab" onclick="showStep(2)"><span class="tab-num">2</span> Record</button>
+    <button class="demo-tab" onclick="showStep(3)"><span class="tab-num">3</span> Done</button>
+  </div>
+  <div class="demo-card">
+    <div class="demo-visual" id="step-visual">
+      <!-- Step 1 visual -->
+      <div class="step-vis" id="vis-1" style="display:flex;">
         <div class="demo-key">Control</div>
-        <h3>Double-tap to start</h3>
-        <p>That's it. Recording begins.</p>
-        <span class="demo-arrow">→</span>
       </div>
-
-      <!-- Step 2: Recording -->
-      <div class="demo-phase">
-        <div class="demo-step-num">Step 2</div>
+      <!-- Step 2 visual -->
+      <div class="step-vis" id="vis-2" style="display:none;">
         <div class="demo-rec-box">
-          <div class="demo-rec-pill">
-            <div class="mini-dot"></div>
-            <span class="mini-time">0:04</span>
-          </div>
-          <svg class="mini-cursor" viewBox="0 0 10 12" fill="none">
-            <path d="M1 1l3.5 10 1.5-3.5 4-1.5L1 1z" fill="white" stroke="black" stroke-width="0.8"/>
-          </svg>
+          <div class="demo-rec-pill"><div class="mini-dot"></div><span class="mini-time">0:04</span></div>
+          <svg class="mini-cursor" viewBox="0 0 10 12" fill="none"><path d="M1 1l3.5 10 1.5-3.5 4-1.5L1 1z" fill="white" stroke="black" stroke-width="0.8"/></svg>
           <div class="mini-ring mini-ring-1"></div>
           <div class="mini-ring mini-ring-2"></div>
         </div>
-        <h3>Do your thing</h3>
-        <p>Click, scroll, type. All tracked.</p>
-        <span class="demo-arrow">→</span>
       </div>
-
-      <!-- Step 3: Result -->
-      <div class="demo-phase">
-        <div class="demo-step-num">Step 3</div>
+      <!-- Step 3 visual -->
+      <div class="step-vis" id="vis-3" style="display:none;">
         <div class="demo-hud">
-          <div class="demo-hud-thumb">
-            <div class="demo-hud-badge">Copied</div>
-            <span class="demo-hud-play">▶</span>
-            <div class="demo-hud-dur">0:06</div>
-          </div>
-          <div class="demo-hud-actions">
-            <div class="demo-hud-act">Copy</div>
-            <div class="demo-hud-act">Open</div>
-            <div class="demo-hud-act">Discard</div>
-          </div>
+          <div class="demo-hud-thumb"><div class="demo-hud-badge">Copied</div><span class="demo-hud-play">▶</span><div class="demo-hud-dur">0:06</div></div>
+          <div class="demo-hud-actions"><div class="demo-hud-act">Copy</div><div class="demo-hud-act">Open</div><div class="demo-hud-act">Discard</div></div>
         </div>
-        <h3>Auto-edited &amp; ready</h3>
-        <p>Zoom, speed ramp, clipboard.</p>
       </div>
-
+    </div>
+    <div class="demo-text" id="step-text">
+      <h3 id="step-title">Double-tap Control</h3>
+      <p id="step-desc">Recording starts instantly. A floating pill appears with a live timer. No menus, no setup, no dialogs.</p>
     </div>
   </div>
-  <p class="demo-caption">Three steps. No video editor. No timeline. Just record and share.</p>
 </div>
 
 <hr class="divider">
@@ -825,30 +754,6 @@ footer a:hover { color: var(--text); }
       <div class="f-icon">🔊</div>
       <h3>Audio feedback</h3>
       <p>Synthesized start/stop tones and a floating recording pill with live timer so you always know the state.</p>
-    </div>
-  </div>
-</section>
-
-<hr class="divider" id="how">
-
-<section class="how">
-  <p class="section-label">How it works</p>
-  <h2>Three steps. Zero friction.</h2>
-  <div class="steps-row">
-    <div class="step-card active">
-      <div class="step-num">Step 01</div>
-      <h3>Double-tap <kbd>Control</kbd></h3>
-      <p>Recording starts instantly. A floating pill appears with a live timer. No menus, no dialogs.</p>
-    </div>
-    <div class="step-card">
-      <div class="step-num">Step 02</div>
-      <h3>Do your thing</h3>
-      <p>Click, scroll, type. Screenie tracks your cursor and logs every interaction for the auto-edit pass.</p>
-    </div>
-    <div class="step-card">
-      <div class="step-num">Step 03</div>
-      <h3>Double-tap to stop</h3>
-      <p>Screenie edits the video — speed ramp, zoom, cursor — and copies it to your clipboard. Preview pops up in the corner.</p>
     </div>
   </div>
 </section>
@@ -894,5 +799,24 @@ footer a:hover { color: var(--text); }
   </div>
 </footer>
 
+<script>
+const stepData = {
+  1: { title: 'Double-tap Control', desc: 'Recording starts instantly. A floating pill appears with a live timer. No menus, no setup, no dialogs.' },
+  2: { title: 'Do your thing', desc: 'Click, scroll, type — Screenie tracks your cursor and logs every interaction for the auto-edit pass.' },
+  3: { title: 'Auto-edited & ready', desc: 'Screenie edits the video — speed ramp, zoom, cursor — and copies it to your clipboard. Preview pops up in the corner.' }
+};
+
+function showStep(n) {
+  document.querySelectorAll('.demo-tab').forEach((t, i) => t.classList.toggle('active', i === n - 1));
+  document.querySelectorAll('.step-vis').forEach(v => v.style.display = 'none');
+  const vis = document.getElementById('vis-' + n);
+  vis.style.display = 'flex';
+  vis.style.animation = 'none';
+  vis.offsetHeight;
+  vis.style.animation = 'fadeIn 0.3s ease';
+  document.getElementById('step-title').textContent = stepData[n].title;
+  document.getElementById('step-desc').textContent = stepData[n].desc;
+}
+</script>
 </body>
 </html>
