@@ -31,14 +31,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBar.delegate = self
         menuBar.setup()
 
-        // Always show the main window on launch
-        showMainWindow()
-
-        // Start hotkey listener
-        startListening()
-
-        settings.hasCompletedOnboarding = true
+        if !settings.hasCompletedOnboarding {
+            // First launch — show guided onboarding
+            NSLog("Screenie: Showing onboarding")
+            showOnboarding()
+        } else {
+            // Already set up — go straight to main window
+            showMainWindow()
+            startListening()
+        }
     }
+
+    private func showOnboarding() {
+        let window = OnboardingWindow { [weak self] in
+            guard let self else { return }
+            NSLog("Screenie: Onboarding complete")
+            self.showMainWindow()
+            self.startListening()
+        }
+        window.makeKeyAndOrderFront(nil)
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate()
+        onboardingWindow = window
+    }
+
+    private var onboardingWindow: OnboardingWindow?
 
     private func showMainWindow() {
         let window = MainWindow()
