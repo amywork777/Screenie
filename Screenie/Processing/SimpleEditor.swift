@@ -77,11 +77,15 @@ final class SimpleEditor {
         // Raw recording has audio — it's preserved when "no edits needed" copies the file
         NSLog("Screenie: Audio processing skipped (video-only edit)")
 
-        // 3. Set up writer
+        // 3. Set up writer — HEVC for high quality output
         let writerSettings: [String: Any] = [
-            AVVideoCodecKey: AVVideoCodecType.h264,
+            AVVideoCodecKey: AVVideoCodecType.hevc,
             AVVideoWidthKey: width,
             AVVideoHeightKey: height,
+            AVVideoCompressionPropertiesKey: [
+                AVVideoAverageBitRateKey: 12_000_000,
+                AVVideoProfileLevelKey: "HEVC_Main_AutoLevel" as CFString,
+            ] as [String: Any],
         ]
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
         let writerInput = AVAssetWriterInput(mediaType: .video, outputSettings: writerSettings)

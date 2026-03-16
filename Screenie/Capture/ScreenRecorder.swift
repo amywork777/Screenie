@@ -44,7 +44,7 @@ final class ScreenRecorder: NSObject {
         let config = SCStreamConfiguration()
         config.width = w
         config.height = h
-        config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
+        config.minimumFrameInterval = CMTime(value: 1, timescale: 60) // 60fps
         config.showsCursor = false
         config.pixelFormat = kCVPixelFormatType_32BGRA
         config.capturesAudio = captureAudio
@@ -59,9 +59,14 @@ final class ScreenRecorder: NSObject {
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mov)
 
         let videoSettings: [String: Any] = [
-            AVVideoCodecKey: AVVideoCodecType.h264,
+            AVVideoCodecKey: AVVideoCodecType.hevc,
             AVVideoWidthKey: w,
             AVVideoHeightKey: h,
+            AVVideoCompressionPropertiesKey: [
+                AVVideoAverageBitRateKey: 12_000_000, // 12 Mbps for crisp output
+                AVVideoExpectedSourceFrameRateKey: 60,
+                AVVideoProfileLevelKey: "HEVC_Main_AutoLevel" as CFString,
+            ] as [String: Any],
         ]
         let vInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
         vInput.expectsMediaDataInRealTime = true
