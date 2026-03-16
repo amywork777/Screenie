@@ -47,7 +47,11 @@ final class ScreenRecorder: NSObject {
         config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
         config.showsCursor = false
         config.pixelFormat = kCVPixelFormatType_32BGRA
-        config.capturesAudio = false // disabled for reliability
+        config.capturesAudio = captureAudio
+        if captureAudio {
+            config.sampleRate = 48000
+            config.channelCount = 2
+        }
 
         // Remove existing file to prevent -12412 error
         try? FileManager.default.removeItem(at: outputURL)
@@ -82,7 +86,9 @@ final class ScreenRecorder: NSObject {
 
         let stream = SCStream(filter: filter, configuration: config, delegate: self)
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: .global(qos: .userInteractive))
-        // Audio stream disabled
+        if captureAudio {
+            try stream.addStreamOutput(self, type: .audio, sampleHandlerQueue: .global(qos: .userInteractive))
+        }
         self.stream = stream
         try await stream.startCapture()
         isRecording = true

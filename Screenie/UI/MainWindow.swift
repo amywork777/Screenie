@@ -96,25 +96,44 @@ final class MainWindow: NSWindow {
         // Screen Recording
         screenRecLabel = NSTextField(labelWithString: "Screen Recording: checking...")
         screenRecLabel.font = .systemFont(ofSize: 12)
-        screenRecLabel.frame = NSRect(x: 30, y: 232, width: 300, height: 18)
+        screenRecLabel.frame = NSRect(x: 30, y: 235, width: 200, height: 18)
         container.addSubview(screenRecLabel)
+
+        let fixScreenBtn = NSButton(title: "Fix", target: self, action: #selector(openScreenRecSettings))
+        fixScreenBtn.bezelStyle = .inline
+        fixScreenBtn.font = .systemFont(ofSize: 11)
+        fixScreenBtn.frame = NSRect(x: 240, y: 234, width: 40, height: 20)
+        container.addSubview(fixScreenBtn)
 
         // Accessibility
         hotkeyStatusLabel = NSTextField(labelWithString: "Accessibility: checking...")
         hotkeyStatusLabel.font = .systemFont(ofSize: 12)
-        hotkeyStatusLabel.frame = NSRect(x: 30, y: 212, width: 300, height: 18)
+        hotkeyStatusLabel.frame = NSRect(x: 30, y: 212, width: 200, height: 18)
         container.addSubview(hotkeyStatusLabel)
+
+        let fixAccessBtn = NSButton(title: "Fix", target: self, action: #selector(openAccessibilitySettings))
+        fixAccessBtn.bezelStyle = .inline
+        fixAccessBtn.font = .systemFont(ofSize: 11)
+        fixAccessBtn.frame = NSRect(x: 240, y: 211, width: 40, height: 20)
+        container.addSubview(fixAccessBtn)
 
         // Microphone
         micStatusLabel = NSTextField(labelWithString: "Microphone: checking...")
         micStatusLabel.font = .systemFont(ofSize: 12)
-        micStatusLabel.frame = NSRect(x: 30, y: 192, width: 300, height: 18)
+        micStatusLabel.frame = NSRect(x: 30, y: 189, width: 200, height: 18)
         container.addSubview(micStatusLabel)
 
-        let fixPermsButton = NSButton(title: "Fix Permissions", target: self, action: #selector(openAllSettings))
-        fixPermsButton.bezelStyle = .rounded
-        fixPermsButton.frame = NSRect(x: 30, y: 160, width: 140, height: 28)
-        container.addSubview(fixPermsButton)
+        let fixMicBtn = NSButton(title: "Fix", target: self, action: #selector(openMicSettings))
+        fixMicBtn.bezelStyle = .inline
+        fixMicBtn.font = .systemFont(ofSize: 11)
+        fixMicBtn.frame = NSRect(x: 240, y: 188, width: 40, height: 20)
+        container.addSubview(fixMicBtn)
+
+        let refreshBtn = NSButton(title: "Refresh", target: self, action: #selector(onRefreshPerms))
+        refreshBtn.bezelStyle = .inline
+        refreshBtn.font = .systemFont(ofSize: 11)
+        refreshBtn.frame = NSRect(x: 290, y: 211, width: 60, height: 20)
+        container.addSubview(refreshBtn)
 
         // Divider
         let divider3 = NSBox(frame: NSRect(x: 30, y: 148, width: 320, height: 1))
@@ -195,14 +214,19 @@ final class MainWindow: NSWindow {
         }
     }
 
-    @objc private func openAllSettings() {
-        // Open Privacy & Security
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy") {
+    @objc private func onRefreshPerms() {
+        refreshPermissions()
+    }
+
+    @objc private func openScreenRecSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
             NSWorkspace.shared.open(url)
         }
-        // Refresh after a delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
-            self?.refreshPermissions()
+    }
+
+    @objc private func openMicSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
+            NSWorkspace.shared.open(url)
         }
     }
 
