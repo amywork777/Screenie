@@ -25,8 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("Screenie: applicationDidFinishLaunching")
 
-        // Set app icon
-        AppIconGenerator.setAppIcon()
+        // App icon comes from Screenie.icns in the bundle — no runtime generation needed
 
         menuBar.delegate = self
         menuBar.setup()

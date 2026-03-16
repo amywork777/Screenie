@@ -13,6 +13,7 @@ final class OnboardingWindow: NSWindow {
     private var statusLabel: NSTextField!
     private var dots: [NSView] = []
     private var pollTimer: Timer?
+    private var secondaryButton: NSButton!
 
     private let steps: [(icon: String, title: String, desc: String, action: String)] = [
         ("🖥", "Welcome to Screenie",
@@ -91,6 +92,16 @@ final class OnboardingWindow: NSWindow {
         skipButton.frame = NSRect(x: 200, y: 42, width: 80, height: 24)
         container.addSubview(skipButton)
 
+        // Secondary button — "Reopen Settings" for when user closes the settings window
+        secondaryButton = NSButton(title: "Reopen Settings", target: self, action: #selector(onSecondary))
+        secondaryButton.bezelStyle = .inline
+        secondaryButton.isBordered = false
+        secondaryButton.font = .systemFont(ofSize: 12, weight: .medium)
+        secondaryButton.contentTintColor = .secondaryLabelColor
+        secondaryButton.frame = NSRect(x: 160, y: 42, width: 160, height: 24)
+        secondaryButton.isHidden = true
+        container.addSubview(secondaryButton)
+
         // Progress dots
         let dotsX = 480 / 2 - CGFloat(steps.count * 14) / 2
         for i in 0..<steps.count {
@@ -120,6 +131,8 @@ final class OnboardingWindow: NSWindow {
 
         // Show skip only for mic step
         skipButton.isHidden = step != 3
+        // Show "Reopen Settings" only during accessibility and mic steps
+        secondaryButton.isHidden = true
 
         // Update dots
         for (i, dot) in dots.enumerated() {
@@ -167,6 +180,8 @@ final class OnboardingWindow: NSWindow {
                 actionButton.title = "Waiting..."
                 statusLabel.stringValue = "Toggle Screenie ON in Settings, then come back here"
                 statusLabel.textColor = .systemOrange
+                secondaryButton.isHidden = false
+                secondaryButton.title = "Reopen Accessibility Settings"
 
                 // Poll every 1s until granted
                 pollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
@@ -220,6 +235,8 @@ final class OnboardingWindow: NSWindow {
                 // Already denied — open settings
                 statusLabel.stringValue = "Opening Settings — toggle Screenie ON"
                 statusLabel.textColor = .systemOrange
+                secondaryButton.isHidden = false
+                secondaryButton.title = "Reopen Microphone Settings"
                 if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
                     NSWorkspace.shared.open(url)
                 }
@@ -242,6 +259,21 @@ final class OnboardingWindow: NSWindow {
 
     @objc private func onSkip() {
         showStep(4)
+    }
+
+    @objc private func onSecondary() {
+        if currentStep == 2 {
+            // Reopen Accessibility settings
+            HotkeyListener.promptAccessibility()
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                NSWorkspace.shared.open(url)
+            }
+        } else if currentStep == 3 {
+            // Reopen Microphone settings
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
+                NSWorkspace.shared.open(url)
+            }
+        }
     }
 
     deinit {
