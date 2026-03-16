@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B10000000000000000000001 /* BlinkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000101 /* BlinkApp.swift */; };
+		B10000000000000000000001 /* ScreenieApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000101 /* ScreenieApp.swift */; };
 		B10000000000000000000002 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000102 /* AppDelegate.swift */; };
-		B10000000000000000000003 /* BlinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000103 /* BlinkTests.swift */; };
+		B10000000000000000000003 /* ScreenieTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000103 /* ScreenieTests.swift */; };
 		B10000000000000000000004 /* InputState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000105 /* InputState.swift */; };
 		B10000000000000000000005 /* InputStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000106 /* InputStateTests.swift */; };
 		B10000000000000000000006 /* HotkeyListener.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000107 /* HotkeyListener.swift */; };
@@ -40,13 +40,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		B10000000000000000000010 /* Blink.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Blink.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		B10000000000000000000011 /* BlinkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BlinkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000000000000000000010 /* Screenie.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Screenie.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000000000000000000011 /* ScreenieTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScreenieTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B10000000000000000000100 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		B10000000000000000000101 /* BlinkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlinkApp.swift; sourceTree = "<group>"; };
+		B10000000000000000000101 /* ScreenieApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenieApp.swift; sourceTree = "<group>"; };
 		B10000000000000000000102 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		B10000000000000000000103 /* BlinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlinkTests.swift; sourceTree = "<group>"; };
-		B10000000000000000000104 /* Blink.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Blink.entitlements; sourceTree = "<group>"; };
+		B10000000000000000000103 /* ScreenieTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenieTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000104 /* Screenie.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Screenie.entitlements; sourceTree = "<group>"; };
 		B10000000000000000000105 /* InputState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputState.swift; sourceTree = "<group>"; };
 		B10000000000000000000106 /* InputStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputStateTests.swift; sourceTree = "<group>"; };
 		B10000000000000000000107 /* HotkeyListener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyListener.swift; sourceTree = "<group>"; };
@@ -99,7 +99,7 @@
 			children = (
 				B10000000000000000000201 /* Blink */,
 				B10000000000000000000203 /* BlinkTests */,
-				B10000000000000000000104 /* Blink.entitlements */,
+				B10000000000000000000104 /* Screenie.entitlements */,
 				B10000000000000000000202 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -116,13 +116,13 @@
 				B10000000000000000000100 /* Info.plist */,
 				B10000000000000000000180 /* Screenie.icns */,
 			);
-			path = Blink;
+			path = Screenie;
 			sourceTree = "<group>";
 		};
 		B10000000000000000000210 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				B10000000000000000000101 /* BlinkApp.swift */,
+				B10000000000000000000101 /* ScreenieApp.swift */,
 				B10000000000000000000102 /* AppDelegate.swift */,
 			);
 			path = App;
@@ -187,8 +187,8 @@
 		B10000000000000000000202 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				B10000000000000000000010 /* Blink.app */,
-				B10000000000000000000011 /* BlinkTests.xctest */,
+				B10000000000000000000010 /* Screenie.app */,
+				B10000000000000000000011 /* ScreenieTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -196,14 +196,14 @@
 		B10000000000000000000203 /* BlinkTests */ = {
 			isa = PBXGroup;
 			children = (
-				B10000000000000000000103 /* BlinkTests.swift */,
+				B10000000000000000000103 /* ScreenieTests.swift */,
 				B10000000000000000000106 /* InputStateTests.swift */,
 				B1000000000000000000010D /* ActivityAnalyzerTests.swift */,
 				B1000000000000000000010F /* SpeedMapperTests.swift */,
 				B10000000000000000000113 /* ZoomEngineTests.swift */,
 				B10000000000000000000117 /* CompositorTests.swift */,
 			);
-			path = BlinkTests;
+			path = ScreenieTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -211,7 +211,7 @@
 /* Begin PBXNativeTarget section */
 		B10000000000000000000030 /* Blink */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = B10000000000000000000400 /* Build configuration list for PBXNativeTarget "Blink" */;
+			buildConfigurationList = B10000000000000000000400 /* Build configuration list for PBXNativeTarget "Screenie" */;
 			buildPhases = (
 				B10000000000000000000040 /* Sources */,
 				B10000000000000000000020 /* Frameworks */,
@@ -221,14 +221,14 @@
 			);
 			dependencies = (
 			);
-			name = Blink;
-			productName = Blink;
-			productReference = B10000000000000000000010 /* Blink.app */;
+			name = Screenie;
+			productName = Screenie;
+			productReference = B10000000000000000000010 /* Screenie.app */;
 			productType = "com.apple.product-type.application";
 		};
 		B10000000000000000000031 /* BlinkTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = B10000000000000000000401 /* Build configuration list for PBXNativeTarget "BlinkTests" */;
+			buildConfigurationList = B10000000000000000000401 /* Build configuration list for PBXNativeTarget "ScreenieTests" */;
 			buildPhases = (
 				B10000000000000000000041 /* Sources */,
 				B10000000000000000000021 /* Frameworks */,
@@ -238,9 +238,9 @@
 			dependencies = (
 				B10000000000000000000060 /* PBXTargetDependency */,
 			);
-			name = BlinkTests;
-			productName = BlinkTests;
-			productReference = B10000000000000000000011 /* BlinkTests.xctest */;
+			name = ScreenieTests;
+			productName = ScreenieTests;
+			productReference = B10000000000000000000011 /* ScreenieTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
@@ -262,7 +262,7 @@
 					};
 				};
 			};
-			buildConfigurationList = B10000000000000000000402 /* Build configuration list for PBXProject "Blink" */;
+			buildConfigurationList = B10000000000000000000402 /* Build configuration list for PBXProject "Screenie" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -297,7 +297,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B10000000000000000000001 /* BlinkApp.swift in Sources */,
+				B10000000000000000000001 /* ScreenieApp.swift in Sources */,
 				B10000000000000000000002 /* AppDelegate.swift in Sources */,
 				B10000000000000000000004 /* InputState.swift in Sources */,
 				B10000000000000000000006 /* HotkeyListener.swift in Sources */,
@@ -327,7 +327,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B10000000000000000000003 /* BlinkTests.swift in Sources */,
+				B10000000000000000000003 /* ScreenieTests.swift in Sources */,
 				B10000000000000000000005 /* InputStateTests.swift in Sources */,
 				B1000000000000000000000C /* ActivityAnalyzerTests.swift in Sources */,
 				B1000000000000000000000F /* SpeedMapperTests.swift in Sources */,
@@ -480,14 +480,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Blink.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Screenie.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = JUBFND4JUY;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Blink/Info.plist;
+				INFOPLIST_FILE = Screenie/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -506,14 +506,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Blink.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Screenie.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = JUBFND4JUY;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Blink/Info.plist;
+				INFOPLIST_FILE = Screenie/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -541,7 +541,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Blink.app/Contents/MacOS/Blink";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Screenie.app/Contents/MacOS/Blink";
 			};
 			name = Debug;
 		};
@@ -559,14 +559,14 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Blink.app/Contents/MacOS/Blink";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Screenie.app/Contents/MacOS/Blink";
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		B10000000000000000000400 /* Build configuration list for PBXNativeTarget "Blink" */ = {
+		B10000000000000000000400 /* Build configuration list for PBXNativeTarget "Screenie" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				B10000000000000000000412 /* Debug */,
@@ -575,7 +575,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		B10000000000000000000401 /* Build configuration list for PBXNativeTarget "BlinkTests" */ = {
+		B10000000000000000000401 /* Build configuration list for PBXNativeTarget "ScreenieTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				B10000000000000000000414 /* Debug */,
@@ -584,7 +584,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		B10000000000000000000402 /* Build configuration list for PBXProject "Blink" */ = {
+		B10000000000000000000402 /* Build configuration list for PBXProject "Screenie" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				B10000000000000000000410 /* Debug */,

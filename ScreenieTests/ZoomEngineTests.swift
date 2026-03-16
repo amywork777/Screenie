@@ -1,6 +1,6 @@
 import XCTest
 import CoreGraphics
-@testable import Blink
+@testable import Screenie
 
 final class ZoomEngineTests: XCTestCase {
 

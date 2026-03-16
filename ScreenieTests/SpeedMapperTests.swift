@@ -1,5 +1,5 @@
 import XCTest
-@testable import Blink
+@testable import Screenie
 
 final class SpeedMapperTests: XCTestCase {
 
