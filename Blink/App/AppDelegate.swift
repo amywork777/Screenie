@@ -66,7 +66,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private var retryCount = 0
+
     private func retryHotkeyListener() {
+        retryCount += 1
+        // Stop retrying after 30 attempts (60 seconds)
+        guard retryCount < 30 else {
+            NSLog("Screenie: Gave up retrying accessibility — user can restart app after granting")
+            return
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
             guard let self else { return }
             let success = self.hotkeyListener.start()
@@ -74,6 +82,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 NSLog("Screenie: Hotkey listener started after permission grant!")
                 self.mainWindow?.updateHotkeyStatus(granted: true)
                 self.mainWindow?.updateRecordingStatus(false)
+                self.retryCount = 0
             } else {
                 self.retryHotkeyListener()
             }

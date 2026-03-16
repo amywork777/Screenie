@@ -10,30 +10,32 @@ final class OnboardingWindow: NSWindow {
     private var stepIcon: NSTextField!
     private var actionButton: NSButton!
     private var skipButton: NSButton!
+    private var statusLabel: NSTextField!
     private var dots: [NSView] = []
+    private var pollTimer: Timer?
 
     private let steps: [(icon: String, title: String, desc: String, action: String)] = [
         ("🖥", "Welcome to Screenie",
-         "Fast screen recordings that edit themselves.\nDouble-tap Control to record, double-tap to stop.\nScreenie auto-edits with zoom, speed ramp, and cursor tracking.",
+         "Fast screen recordings that edit themselves.\nDouble-tap Control to record, double-tap to stop.\nScreenie handles zoom, speed ramp, and cursor tracking.",
          "Get Started"),
         ("🔒", "Screen Recording",
-         "Screenie needs permission to capture your screen.\nClick below and macOS will ask you to allow it.",
+         "Screenie needs permission to capture your screen.\nA system dialog will appear — click Allow.",
          "Enable Screen Recording"),
         ("⌨️", "Accessibility",
-         "Screenie needs Accessibility access to detect your Control key double-tap.\nClick below to open System Settings and add Screenie.",
-         "Enable Accessibility"),
+         "Screenie needs Accessibility to detect your keyboard shortcut.\n\n1. Click the button below to open System Settings\n2. Find Screenie in the list and toggle it ON\n3. Come back here — Screenie will detect it automatically",
+         "Open Accessibility Settings"),
         ("🎤", "Microphone (Optional)",
-         "If you want to record your voice alongside your screen, enable microphone access.\nYou can skip this and enable it later in Settings.",
+         "Enable this if you want to record your voice.\nYou can skip this and enable it later.",
          "Enable Microphone"),
         ("✨", "You're all set!",
-         "Double-tap Control to start recording.\nDouble-tap Control again to stop.\nYour edited recording will be copied to your clipboard automatically.",
+         "Double-tap Control to start recording.\nDouble-tap Control again to stop.\n\nYour edited recording is copied to your clipboard automatically.",
          "Start Using Screenie"),
     ]
 
     init(onComplete: @escaping () -> Void) {
         self.onComplete = onComplete
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: 400),
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 420),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: true
@@ -46,26 +48,33 @@ final class OnboardingWindow: NSWindow {
     }
 
     private func setupViews() {
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 480, height: 400))
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 480, height: 420))
 
         stepIcon = NSTextField(labelWithString: "")
         stepIcon.font = .systemFont(ofSize: 48)
         stepIcon.alignment = .center
-        stepIcon.frame = NSRect(x: 0, y: 300, width: 480, height: 56)
+        stepIcon.frame = NSRect(x: 0, y: 320, width: 480, height: 56)
         container.addSubview(stepIcon)
 
         stepTitle = NSTextField(labelWithString: "")
         stepTitle.font = .systemFont(ofSize: 22, weight: .bold)
         stepTitle.alignment = .center
-        stepTitle.frame = NSRect(x: 30, y: 260, width: 420, height: 32)
+        stepTitle.frame = NSRect(x: 30, y: 280, width: 420, height: 32)
         container.addSubview(stepTitle)
 
         stepDesc = NSTextField(wrappingLabelWithString: "")
         stepDesc.font = .systemFont(ofSize: 13)
         stepDesc.textColor = .secondaryLabelColor
         stepDesc.alignment = .center
-        stepDesc.frame = NSRect(x: 40, y: 140, width: 400, height: 110)
+        stepDesc.frame = NSRect(x: 40, y: 145, width: 400, height: 125)
         container.addSubview(stepDesc)
+
+        // Status label (for "Waiting for permission..." type messages)
+        statusLabel = NSTextField(labelWithString: "")
+        statusLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        statusLabel.alignment = .center
+        statusLabel.frame = NSRect(x: 40, y: 115, width: 400, height: 20)
+        container.addSubview(statusLabel)
 
         actionButton = NSButton(title: "", target: self, action: #selector(onAction))
         actionButton.bezelStyle = .rounded
@@ -79,10 +88,10 @@ final class OnboardingWindow: NSWindow {
         skipButton.isBordered = false
         skipButton.font = .systemFont(ofSize: 12)
         skipButton.contentTintColor = .tertiaryLabelColor
-        skipButton.frame = NSRect(x: 200, y: 40, width: 80, height: 24)
+        skipButton.frame = NSRect(x: 200, y: 42, width: 80, height: 24)
         container.addSubview(skipButton)
 
-        // Step dots
+        // Progress dots
         let dotsX = 480 / 2 - CGFloat(steps.count * 14) / 2
         for i in 0..<steps.count {
             let dot = NSView(frame: NSRect(x: dotsX + CGFloat(i) * 14, y: 18, width: 8, height: 8))
@@ -97,12 +106,17 @@ final class OnboardingWindow: NSWindow {
     }
 
     private func showStep(_ step: Int) {
+        pollTimer?.invalidate()
+        pollTimer = nil
         currentStep = step
         let s = steps[step]
         stepIcon.stringValue = s.icon
         stepTitle.stringValue = s.title
         stepDesc.stringValue = s.desc
         actionButton.title = s.action
+        actionButton.isEnabled = true
+        statusLabel.stringValue = ""
+        statusLabel.textColor = .secondaryLabelColor
 
         // Show skip only for mic step
         skipButton.isHidden = step != 3
@@ -110,19 +124,27 @@ final class OnboardingWindow: NSWindow {
         // Update dots
         for (i, dot) in dots.enumerated() {
             dot.layer?.backgroundColor = (i == step
-                ? NSColor(red: 0.91, green: 0.45, blue: 0.54, alpha: 1) // pink
+                ? NSColor(red: 0.91, green: 0.45, blue: 0.54, alpha: 1)
                 : NSColor.tertiaryLabelColor).cgColor
+        }
+
+        // If on accessibility step, check if already granted
+        if step == 2 && AXIsProcessTrusted() {
+            statusLabel.stringValue = "✓ Already granted!"
+            statusLabel.textColor = .systemGreen
+            actionButton.title = "Continue"
         }
     }
 
     @objc private func onAction() {
         switch currentStep {
         case 0:
-            // Welcome → next
             showStep(1)
 
         case 1:
-            // Screen Recording
+            // Screen Recording — trigger the system dialog
+            actionButton.isEnabled = false
+            statusLabel.stringValue = "Requesting permission..."
             Task {
                 _ = try? await SCShareableContent.current
                 DispatchQueue.main.async {
@@ -132,22 +154,83 @@ final class OnboardingWindow: NSWindow {
 
         case 2:
             // Accessibility
-            HotkeyListener.promptAccessibility()
-            // Give user time to grant, then advance
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                self.showStep(3)
+            if AXIsProcessTrusted() {
+                // Already granted — move on
+                showStep(3)
+            } else {
+                // Open settings and start polling
+                HotkeyListener.promptAccessibility()
+                let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+                NSWorkspace.shared.open(url)
+
+                actionButton.isEnabled = false
+                actionButton.title = "Waiting..."
+                statusLabel.stringValue = "Toggle Screenie ON in Settings, then come back here"
+                statusLabel.textColor = .systemOrange
+
+                // Poll every 1s until granted
+                pollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                    guard let self else { return }
+                    if AXIsProcessTrusted() {
+                        self.pollTimer?.invalidate()
+                        self.pollTimer = nil
+                        self.statusLabel.stringValue = "✓ Accessibility granted!"
+                        self.statusLabel.textColor = .systemGreen
+                        self.actionButton.title = "Continue"
+                        self.actionButton.isEnabled = true
+
+                        // Auto-advance after a moment
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                            if self.currentStep == 2 {
+                                self.showStep(3)
+                            }
+                        }
+                    }
+                }
             }
 
         case 3:
             // Microphone
-            requestMicPermission {
-                DispatchQueue.main.async {
+            actionButton.isEnabled = false
+            statusLabel.stringValue = "Requesting permission..."
+
+            let status = AVCaptureDevice.authorizationStatus(for: .audio)
+            if status == .authorized {
+                statusLabel.stringValue = "✓ Already granted!"
+                statusLabel.textColor = .systemGreen
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    self.showStep(4)
+                }
+            } else if status == .notDetermined {
+                AVCaptureDevice.requestAccess(for: .audio) { granted in
+                    DispatchQueue.main.async {
+                        if granted {
+                            self.statusLabel.stringValue = "✓ Microphone granted!"
+                            self.statusLabel.textColor = .systemGreen
+                        } else {
+                            self.statusLabel.stringValue = "Denied — you can enable later in Settings"
+                            self.statusLabel.textColor = .systemOrange
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                            self.showStep(4)
+                        }
+                    }
+                }
+            } else {
+                // Already denied — open settings
+                statusLabel.stringValue = "Opening Settings — toggle Screenie ON"
+                statusLabel.textColor = .systemOrange
+                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
+                    NSWorkspace.shared.open(url)
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     self.showStep(4)
                 }
             }
 
         case 4:
             // Done
+            pollTimer?.invalidate()
             Settings.shared.hasCompletedOnboarding = true
             close()
             onComplete?()
@@ -158,26 +241,10 @@ final class OnboardingWindow: NSWindow {
     }
 
     @objc private func onSkip() {
-        // Skip mic, go to done
         showStep(4)
     }
 
-    private func requestMicPermission(completion: @escaping () -> Void) {
-        let status = AVCaptureDevice.authorizationStatus(for: .audio)
-        if status == .notDetermined {
-            AVCaptureDevice.requestAccess(for: .audio) { _ in
-                completion()
-            }
-        } else if status == .denied || status == .restricted {
-            // Open system settings for mic
-            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
-                NSWorkspace.shared.open(url)
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                completion()
-            }
-        } else {
-            completion()
-        }
+    deinit {
+        pollTimer?.invalidate()
     }
 }
