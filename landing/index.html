@@ -5,703 +5,901 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Screenie — Fast Screen Recordings</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Satoshi:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #fef6f0;
-  --text: #2d2035;
-  --text-soft: #6b5d73;
-  --lavender: #9b7fd4;
-  --pink: #e8849a;
-  --peach: #f4b89c;
-  --mint: #8ed6c8;
-  --card: #ffffff;
-  --glow-1: rgba(155, 127, 212, 0.3);
-  --glow-2: rgba(232, 132, 154, 0.25);
+  --bg: #fafaf8;
+  --surface: #ffffff;
+  --text: #1a1a1a;
+  --text-2: #666;
+  --text-3: #999;
+  --border: #e8e8e6;
+  --accent: #e84d6d;
+  --accent-soft: #fef0f2;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Satoshi', -apple-system, sans-serif;
   background: var(--bg);
   color: var(--text);
-  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  line-height: 1.6;
 }
 
-/* Grain overlay */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.025;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  z-index: 9999;
-}
-
-/* Floating blobs */
-.blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.5;
-  animation: float 20s ease-in-out infinite;
-  pointer-events: none;
-}
-.blob-1 { width: 500px; height: 500px; background: var(--glow-1); top: -100px; right: -100px; }
-.blob-2 { width: 400px; height: 400px; background: var(--glow-2); bottom: 200px; left: -150px; animation-delay: -7s; }
-.blob-3 { width: 300px; height: 300px; background: rgba(142, 214, 200, 0.25); top: 60%; right: 10%; animation-delay: -14s; }
-
-@keyframes float {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -40px) scale(1.05); }
-  66% { transform: translate(-20px, 30px) scale(0.95); }
-}
+a { color: inherit; }
 
 /* Nav */
 nav {
-  position: fixed;
-  top: 0;
-  width: 100%;
-  padding: 20px 40px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  z-index: 100;
-  backdrop-filter: blur(20px);
-  background: rgba(254, 246, 240, 0.8);
 }
 
 .logo {
   font-weight: 700;
-  font-size: 1.4rem;
-  letter-spacing: -0.02em;
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+  text-decoration: none;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.logo-icon {
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, var(--lavender), var(--pink));
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  color: white;
+.logo-mark {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, #9b7fd4, #e8849a);
+  border-radius: 7px;
   position: relative;
 }
-
-.logo-icon::after {
+.logo-mark::after {
   content: '';
-  width: 6px;
-  height: 6px;
-  background: #ff5555;
-  border-radius: 50%;
   position: absolute;
-  top: 5px;
-  right: 5px;
+  width: 5px; height: 5px;
+  background: #fff;
+  border-radius: 50%;
+  top: 4px; right: 4px;
+  opacity: 0.9;
 }
 
-.nav-links { display: flex; gap: 32px; align-items: center; }
-.nav-links a {
-  text-decoration: none;
-  color: var(--text-soft);
-  font-size: 0.95rem;
-  font-weight: 400;
-  transition: color 0.2s;
-}
-.nav-links a:hover { color: var(--text); }
-
-.btn-download {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 24px;
-  background: var(--text);
-  color: white;
-  border-radius: 50px;
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 0.9rem;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.btn-download:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(45, 32, 53, 0.2);
-}
-
-/* Hero */
-.hero {
-  position: relative;
-  min-height: 100vh;
+.nav-right {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 140px 24px 80px;
+  gap: 28px;
 }
 
-.pill {
+.nav-right a {
+  text-decoration: none;
+  font-size: 0.9rem;
+  color: var(--text-2);
+  transition: color 0.15s;
+}
+.nav-right a:hover { color: var(--text); }
+
+.gh-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 16px;
-  background: white;
-  border-radius: 50px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--text-soft);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-  margin-bottom: 32px;
-  animation: fadeUp 0.8s ease both;
-}
-.pill-dot {
-  width: 8px;
-  height: 8px;
-  background: var(--pink);
-  border-radius: 50%;
-  animation: pulse 2s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
 }
 
-h1 {
-  font-family: 'DM Serif Display', serif;
-  font-size: clamp(3rem, 8vw, 6rem);
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-  margin-bottom: 24px;
-  animation: fadeUp 0.8s ease 0.1s both;
-}
-
-h1 .accent {
-  background: linear-gradient(135deg, var(--lavender), var(--pink));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-style: italic;
-}
-
-.hero-sub {
-  font-size: 1.25rem;
-  color: var(--text-soft);
-  max-width: 480px;
-  line-height: 1.6;
-  font-weight: 300;
-  margin-bottom: 40px;
-  animation: fadeUp 0.8s ease 0.2s both;
-}
-
-.hero-cta {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  animation: fadeUp 0.8s ease 0.3s both;
-}
-
-.btn-primary {
+.btn {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 16px 36px;
-  background: linear-gradient(135deg, var(--lavender), var(--pink));
-  color: white;
-  border-radius: 50px;
+  gap: 8px;
+  padding: 9px 20px;
+  background: var(--text);
+  color: #fff;
+  border-radius: 8px;
   text-decoration: none;
-  font-weight: 600;
-  font-size: 1.05rem;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
-  box-shadow: 0 4px 20px var(--glow-1);
+  font-weight: 500;
+  font-size: 0.88rem;
+  transition: opacity 0.15s;
 }
-.btn-primary:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 8px 40px var(--glow-1);
+.btn:hover { opacity: 0.85; }
+
+/* Hero */
+.hero {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 72px 32px 0;
 }
 
-.btn-ghost {
-  padding: 16px 28px;
-  color: var(--text-soft);
-  text-decoration: none;
-  font-weight: 400;
-  font-size: 1rem;
-  transition: color 0.2s;
+.hero-content {
+  max-width: 620px;
 }
-.btn-ghost:hover { color: var(--text); }
 
-.hero-note {
-  margin-top: 16px;
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px 5px 8px;
+  background: var(--accent-soft);
+  border-radius: 100px;
   font-size: 0.8rem;
-  color: var(--text-soft);
-  opacity: 0.6;
-  animation: fadeUp 0.8s ease 0.4s both;
+  font-weight: 500;
+  color: var(--accent);
+  margin-bottom: 28px;
+}
+
+.badge svg { flex-shrink: 0; }
+
+h1 {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(2.8rem, 5.5vw, 4.2rem);
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  font-weight: 400;
+  margin-bottom: 20px;
+}
+
+.hero-desc {
+  font-size: 1.1rem;
+  color: var(--text-2);
+  max-width: 440px;
+  line-height: 1.65;
+  margin-bottom: 32px;
+  font-weight: 300;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.btn-big {
+  padding: 13px 28px;
+  font-size: 0.95rem;
+  border-radius: 10px;
+}
+
+.btn-outline {
+  padding: 13px 28px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.btn-outline:hover { border-color: #ccc; background: #fff; }
+
+.hero-meta {
+  font-size: 0.8rem;
+  color: var(--text-3);
+  margin-top: 8px;
 }
 
 /* Demo */
-.demo {
-  max-width: 900px;
-  margin: -20px auto 0;
-  padding: 0 24px;
-  animation: fadeUp 1s ease 0.5s both;
+.demo-section {
+  max-width: 1080px;
+  margin: 72px auto 0;
+  padding: 0 32px;
 }
 
-.demo-window {
-  background: #1a1520;
-  border-radius: 16px;
+.demo-frame {
+  background: #111;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow:
-    0 20px 60px rgba(45, 32, 53, 0.15),
-    0 0 0 1px rgba(255,255,255,0.08) inset;
-}
-
-.demo-titlebar {
-  padding: 14px 18px;
-  display: flex;
-  gap: 8px;
-  background: rgba(255,255,255,0.05);
-}
-.demo-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-.demo-dot:nth-child(1) { background: #ff5f57; }
-.demo-dot:nth-child(2) { background: #febc2e; }
-.demo-dot:nth-child(3) { background: #28c840; }
-
-.demo-content {
-  padding: 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  min-height: 300px;
+  border: 1px solid #222;
   position: relative;
+  aspect-ratio: 16/10;
 }
 
-.demo-keys {
+.demo-bar {
   display: flex;
-  gap: 8px;
   align-items: center;
+  gap: 7px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.dot-r { background: #ff5f57; }
+.dot-y { background: #febc2e; }
+.dot-g { background: #28c840; }
+
+.demo-screen {
+  position: relative;
+  width: 100%;
+  height: calc(100% - 38px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
-.key {
-  padding: 8px 16px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.12);
+/* Simulated screen content */
+.fake-desktop {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(160deg, #1a1a2e 0%, #16213e 100%);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fake-code {
+  width: 60%;
+  padding: 24px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: clamp(8px, 1.2vw, 13px);
+  color: rgba(255,255,255,0.5);
+  line-height: 1.8;
+}
+.fake-code .kw { color: #c792ea; }
+.fake-code .fn { color: #82aaff; }
+.fake-code .str { color: #c3e88d; }
+.fake-code .cm { color: #546e7a; }
+
+/* Animated cursor on demo */
+.demo-cursor {
+  position: absolute;
+  width: 18px;
+  height: 22px;
+  pointer-events: none;
+  animation: cursorMove 8s ease-in-out infinite;
+  z-index: 10;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+}
+
+@keyframes cursorMove {
+  0%   { left: 30%; top: 40%; }
+  15%  { left: 45%; top: 35%; }
+  25%  { left: 45%; top: 35%; }
+  40%  { left: 65%; top: 55%; }
+  50%  { left: 65%; top: 55%; }
+  65%  { left: 35%; top: 60%; }
+  75%  { left: 35%; top: 60%; }
+  90%  { left: 50%; top: 45%; }
+  100% { left: 30%; top: 40%; }
+}
+
+/* Click ripple */
+.click-ring {
+  position: absolute;
+  width: 32px; height: 32px;
+  border: 2px solid rgba(255,255,255,0.5);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: clickRipple 8s ease-in-out infinite;
+  z-index: 9;
+}
+
+@keyframes clickRipple {
+  0%, 14%, 26%, 39%, 51%, 64%, 76%, 89%, 100% {
+    opacity: 0; transform: scale(0.5);
+  }
+  15%, 16% {
+    left: calc(45% + 2px); top: calc(35% + 6px);
+    opacity: 1; transform: scale(0.5);
+  }
+  20% {
+    left: calc(45% + 2px); top: calc(35% + 6px);
+    opacity: 0; transform: scale(1.5);
+  }
+  40%, 41% {
+    left: calc(65% + 2px); top: calc(55% + 6px);
+    opacity: 1; transform: scale(0.5);
+  }
+  45% {
+    left: calc(65% + 2px); top: calc(55% + 6px);
+    opacity: 0; transform: scale(1.5);
+  }
+  65%, 66% {
+    left: calc(35% + 2px); top: calc(60% + 6px);
+    opacity: 1; transform: scale(0.5);
+  }
+  70% {
+    left: calc(35% + 2px); top: calc(60% + 6px);
+    opacity: 0; transform: scale(1.5);
+  }
+}
+
+/* Zoom overlay */
+.zoom-indicator {
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgba(155, 127, 212, 0);
   border-radius: 8px;
+  pointer-events: none;
+  animation: zoomPulse 8s ease-in-out infinite;
+  z-index: 8;
+}
+
+@keyframes zoomPulse {
+  0%, 14%, 22%, 39%, 47%, 64%, 72%, 100% {
+    inset: 0; border-color: rgba(155, 127, 212, 0);
+  }
+  16%, 20% {
+    inset: 15% 20% 25% 15%;
+    border-color: rgba(155, 127, 212, 0.3);
+  }
+  41%, 45% {
+    inset: 20% 10% 15% 30%;
+    border-color: rgba(155, 127, 212, 0.3);
+  }
+  66%, 70% {
+    inset: 25% 30% 10% 10%;
+    border-color: rgba(155, 127, 212, 0.3);
+  }
+}
+
+/* Preview HUD in corner */
+.preview-hud {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 140px;
+  background: rgba(30, 30, 30, 0.92);
+  backdrop-filter: blur(10px);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  z-index: 20;
+  animation: hudAppear 8s ease-in-out infinite;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+@keyframes hudAppear {
+  0%, 82% { opacity: 0; transform: translateY(12px) scale(0.95); }
+  86%, 96% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(0) scale(1); }
+}
+
+.hud-thumb {
+  height: 70px;
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hud-thumb-badge {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  background: #28c840;
+  color: white;
+  font-size: 6.5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.hud-time {
+  position: absolute;
+  bottom: 4px;
+  right: 6px;
+  color: white;
+  font-size: 7px;
+  font-family: 'SF Mono', monospace;
+  background: rgba(0,0,0,0.6);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.hud-actions {
+  display: flex;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.hud-action {
+  flex: 1;
+  padding: 7px 0;
+  text-align: center;
   color: rgba(255,255,255,0.7);
-  font-size: 0.85rem;
+  font-size: 7px;
   font-weight: 500;
-  font-family: 'Outfit', sans-serif;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+.hud-action:last-child { border-right: none; color: rgba(255,255,255,0.4); }
+
+/* Recording indicator */
+.rec-pill {
+  position: absolute;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 20, 0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  z-index: 20;
+  animation: recPillAnim 8s ease-in-out infinite;
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
-.key-highlight {
-  animation: keyTap 3s ease-in-out infinite;
+.rec-dot-live {
+  width: 7px; height: 7px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse 1.2s ease-in-out infinite;
 }
 
-@keyframes keyTap {
-  0%, 100% { background: rgba(255,255,255,0.08); transform: scale(1); }
-  10%, 20% { background: var(--lavender); color: white; transform: scale(0.95); box-shadow: 0 0 20px var(--glow-1); }
-  30%, 40% { background: rgba(255,255,255,0.08); transform: scale(1); }
-  50%, 60% { background: var(--lavender); color: white; transform: scale(0.95); box-shadow: 0 0 20px var(--glow-1); }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
-.demo-status {
-  color: rgba(255,255,255,0.4);
+.rec-time {
+  color: #fff;
+  font-size: 10px;
+  font-family: 'SF Mono', 'Satoshi', monospace;
+  font-weight: 500;
+}
+
+@keyframes recPillAnim {
+  0%, 8% { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  12%, 78% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  82%, 100% { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+}
+
+/* Label under demo */
+.demo-caption {
+  text-align: center;
+  margin-top: 20px;
+  color: var(--text-3);
   font-size: 0.85rem;
   font-weight: 300;
 }
 
-.demo-recording {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--pink);
-  font-size: 0.9rem;
-  font-weight: 500;
-  animation: recordBlink 1.5s ease-in-out infinite;
-}
-.demo-recording::before {
-  content: '';
-  width: 10px;
-  height: 10px;
-  background: var(--pink);
-  border-radius: 50%;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes recordBlink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-.demo-flow {
-  display: flex;
-  gap: 24px;
-  align-items: center;
-  margin-top: 12px;
-}
-
-.flow-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.flow-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-}
-
-.flow-label {
-  color: rgba(255,255,255,0.4);
-  font-size: 0.75rem;
-}
-
-.flow-arrow {
-  color: rgba(255,255,255,0.15);
-  font-size: 1.2rem;
-  margin-top: -20px;
+/* Divider */
+.divider {
+  max-width: 1080px;
+  margin: 96px auto;
+  padding: 0 32px;
+  border: none;
+  border-top: 1px solid var(--border);
 }
 
 /* Features */
 .features {
-  padding: 120px 24px;
-  max-width: 1100px;
+  max-width: 1080px;
   margin: 0 auto;
+  padding: 0 32px;
 }
 
-.features-header {
-  text-align: center;
-  margin-bottom: 64px;
+.section-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+  font-weight: 500;
+  margin-bottom: 12px;
 }
 
-.features-header h2 {
-  font-family: 'DM Serif Display', serif;
-  font-size: clamp(2rem, 4vw, 3rem);
-  letter-spacing: -0.02em;
-  margin-bottom: 16px;
+.features h2 {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  margin-bottom: 48px;
+  max-width: 500px;
+  line-height: 1.15;
 }
 
-.features-header p {
-  color: var(--text-soft);
-  font-size: 1.1rem;
-  font-weight: 300;
-}
-
-.feature-grid {
+.f-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
 }
 
-.feature-card {
-  background: var(--card);
-  border-radius: 20px;
-  padding: 36px 28px;
-  border: 1px solid rgba(0,0,0,0.04);
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
-}
-.feature-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.06);
+.f-item {
+  background: var(--surface);
+  padding: 32px 28px;
 }
 
-.feature-emoji {
-  font-size: 2rem;
-  margin-bottom: 16px;
-  display: block;
-}
-
-.feature-card h3 {
-  font-size: 1.1rem;
+.f-item h3 {
+  font-size: 0.95rem;
   font-weight: 600;
   margin-bottom: 8px;
   letter-spacing: -0.01em;
 }
 
-.feature-card p {
-  color: var(--text-soft);
-  font-size: 0.9rem;
-  line-height: 1.6;
+.f-item p {
+  font-size: 0.88rem;
+  color: var(--text-2);
+  line-height: 1.55;
   font-weight: 300;
 }
 
-/* How it works */
+.f-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+  background: var(--bg);
+}
+
+/* How */
 .how {
-  padding: 80px 24px 120px;
-  text-align: center;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 32px;
 }
 
 .how h2 {
-  font-family: 'DM Serif Display', serif;
-  font-size: clamp(2rem, 4vw, 3rem);
-  letter-spacing: -0.02em;
-  margin-bottom: 64px;
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  margin-bottom: 48px;
+  line-height: 1.15;
 }
 
-.steps {
-  display: flex;
-  justify-content: center;
-  gap: 60px;
-  max-width: 800px;
-  margin: 0 auto;
+.steps-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
 }
 
-.step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  flex: 1;
+.step-card {
+  position: relative;
+  padding-left: 20px;
+  border-left: 2px solid var(--border);
 }
+
+.step-card.active { border-left-color: var(--accent); }
 
 .step-num {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--lavender), var(--pink));
-  color: white;
+  font-size: 0.7rem;
   font-weight: 700;
-  font-size: 1.1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
 }
 
-.step h3 {
-  font-size: 1.05rem;
+.step-card.active .step-num { color: var(--accent); }
+
+.step-card h3 {
+  font-size: 1rem;
   font-weight: 600;
+  margin-bottom: 6px;
 }
 
-.step p {
-  color: var(--text-soft);
-  font-size: 0.9rem;
+.step-card p {
+  font-size: 0.88rem;
+  color: var(--text-2);
   font-weight: 300;
   line-height: 1.5;
 }
 
+.step-card kbd {
+  display: inline-block;
+  padding: 2px 7px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: 'SF Mono', monospace;
+  font-size: 0.78rem;
+}
+
+/* Open source */
+.oss {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.oss-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 40px 48px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.oss-left h3 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.6rem;
+  font-weight: 400;
+  margin-bottom: 6px;
+}
+
+.oss-left p {
+  color: var(--text-2);
+  font-size: 0.92rem;
+  font-weight: 300;
+}
+
+.btn-gh {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background: #24292e;
+  color: #fff;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: opacity 0.15s;
+}
+.btn-gh:hover { opacity: 0.85; }
+.btn-gh svg { flex-shrink: 0; }
+
 /* CTA */
-.cta {
-  padding: 80px 24px 120px;
+.final-cta {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 32px 96px;
   text-align: center;
 }
 
-.cta-box {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 64px 48px;
-  background: linear-gradient(135deg, rgba(155, 127, 212, 0.08), rgba(232, 132, 154, 0.08));
-  border-radius: 32px;
-  border: 1px solid rgba(155, 127, 212, 0.15);
-}
-
-.cta-box h2 {
-  font-family: 'DM Serif Display', serif;
-  font-size: 2.2rem;
-  letter-spacing: -0.02em;
+.final-cta h2 {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 400;
+  letter-spacing: -0.03em;
   margin-bottom: 16px;
 }
 
-.cta-box p {
-  color: var(--text-soft);
-  margin-bottom: 32px;
+.final-cta p {
+  color: var(--text-2);
   font-weight: 300;
+  margin-bottom: 28px;
+  font-size: 1.05rem;
 }
+
+.btn-accent {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 32px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: opacity 0.15s;
+}
+.btn-accent:hover { opacity: 0.9; }
 
 /* Footer */
 footer {
-  padding: 40px 24px;
-  text-align: center;
-  color: var(--text-soft);
-  font-size: 0.85rem;
-  font-weight: 300;
-  border-top: 1px solid rgba(0,0,0,0.05);
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px 32px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  font-size: 0.82rem;
+  color: var(--text-3);
 }
 
-footer a {
-  color: var(--lavender);
-  text-decoration: none;
-}
+footer a { text-decoration: none; color: var(--text-2); }
+footer a:hover { color: var(--text); }
 
-/* Animations */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+.footer-links { display: flex; gap: 24px; }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .feature-grid { grid-template-columns: 1fr; }
-  .steps { flex-direction: column; gap: 40px; }
-  .demo-flow { flex-wrap: wrap; justify-content: center; }
+  .f-grid { grid-template-columns: 1fr; }
+  .steps-row { grid-template-columns: 1fr; gap: 24px; }
+  .oss-box { flex-direction: column; gap: 24px; text-align: center; }
+  .hero-actions { flex-direction: column; align-items: flex-start; }
   nav { padding: 16px 20px; }
-  .nav-links a:not(.btn-download) { display: none; }
-  .hero { padding-top: 120px; }
+  .nav-right a:not(.btn) { display: none; }
 }
 </style>
 </head>
 <body>
 
-<div class="blob blob-1"></div>
-<div class="blob blob-2"></div>
-<div class="blob blob-3"></div>
-
 <nav>
-  <div class="logo">
-    <div class="logo-icon">🖥</div>
+  <a href="/" class="logo">
+    <div class="logo-mark"></div>
     Screenie
-  </div>
-  <div class="nav-links">
+  </a>
+  <div class="nav-right">
     <a href="#features">Features</a>
     <a href="#how">How it works</a>
-    <a href="https://github.com/amywork777/Blink" class="btn-download">Download Free</a>
+    <a href="https://github.com/amywork777/Blink" class="gh-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub
+    </a>
+    <a href="https://github.com/amywork777/Blink/releases" class="btn">Download</a>
   </div>
 </nav>
 
 <section class="hero">
-  <div class="pill">
-    <span class="pill-dot"></span>
-    Now available for macOS
+  <div class="hero-content">
+    <div class="badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 6v6l4 2"/></svg>
+      Record → auto-edit → done in seconds
+    </div>
+    <h1>Screen recordings that edit themselves</h1>
+    <p class="hero-desc">Double-tap a key, record your screen. Screenie handles the rest — smart zoom on clicks, speed ramping through idle moments, smooth cursor tracking. Open source.</p>
+    <div class="hero-actions">
+      <a href="https://github.com/amywork777/Blink/releases" class="btn btn-big">Download for Mac</a>
+      <a href="https://github.com/amywork777/Blink" class="btn-outline">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        View source
+      </a>
+    </div>
+    <p class="hero-meta">Free &amp; open source · macOS 14+ · Apple Silicon &amp; Intel</p>
   </div>
-  <h1>Screen recordings<br>that look <span class="accent">beautiful</span></h1>
-  <p class="hero-sub">Double-tap a key. Record your screen. Screenie auto-edits with smart zoom, speed ramping, and cursor smoothing. Done in seconds.</p>
-  <div class="hero-cta">
-    <a href="https://github.com/amywork777/Blink" class="btn-primary">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Download for Mac
-    </a>
-    <a href="#how" class="btn-ghost">See how it works →</a>
-  </div>
-  <p class="hero-note">Free &amp; open source · macOS 14+ · Apple Silicon &amp; Intel</p>
 </section>
 
-<div class="demo">
-  <div class="demo-window">
-    <div class="demo-titlebar">
-      <div class="demo-dot"></div>
-      <div class="demo-dot"></div>
-      <div class="demo-dot"></div>
+<div class="demo-section">
+  <div class="demo-frame">
+    <div class="demo-bar">
+      <div class="dot dot-r"></div>
+      <div class="dot dot-y"></div>
+      <div class="dot dot-g"></div>
     </div>
-    <div class="demo-content">
-      <div class="demo-keys">
-        <span class="key key-highlight">Control</span>
-        <span style="color: rgba(255,255,255,0.3)">×2</span>
+    <div class="demo-screen">
+      <div class="fake-desktop">
+        <div class="fake-code">
+          <span class="cm">// your code, your workflow</span><br>
+          <span class="kw">func</span> <span class="fn">handleClick</span>() {<br>
+          &nbsp;&nbsp;<span class="kw">let</span> result = <span class="fn">processData</span>()<br>
+          &nbsp;&nbsp;<span class="fn">updateUI</span>(with: result)<br>
+          &nbsp;&nbsp;<span class="fn">saveToDatabase</span>(<span class="str">"done"</span>)<br>
+          }<br><br>
+          <span class="kw">func</span> <span class="fn">deploy</span>() <span class="kw">async</span> {<br>
+          &nbsp;&nbsp;<span class="kw">try await</span> <span class="fn">build</span>()<br>
+          &nbsp;&nbsp;<span class="fn">push</span>(to: <span class="str">"production"</span>)<br>
+          }
+        </div>
       </div>
-      <div class="demo-recording">Recording 0:04</div>
-      <div class="demo-flow">
-        <div class="flow-step">
-          <div class="flow-icon">🎬</div>
-          <span class="flow-label">Record</span>
+
+      <!-- Animated cursor -->
+      <svg class="demo-cursor" viewBox="0 0 18 22" fill="none">
+        <path d="M1 1l6 19 3-7 8-3L1 1z" fill="white" stroke="black" stroke-width="1.5"/>
+      </svg>
+
+      <!-- Click ripple -->
+      <div class="click-ring"></div>
+
+      <!-- Zoom indicator -->
+      <div class="zoom-indicator"></div>
+
+      <!-- Recording pill -->
+      <div class="rec-pill">
+        <div class="rec-dot-live"></div>
+        <span class="rec-time">0:04</span>
+      </div>
+
+      <!-- Preview HUD -->
+      <div class="preview-hud">
+        <div class="hud-thumb">
+          <div class="hud-thumb-badge">Copied</div>
+          <span style="color:rgba(255,255,255,0.15);font-size:18px;">▶</span>
+          <div class="hud-time">0:08</div>
         </div>
-        <span class="flow-arrow">→</span>
-        <div class="flow-step">
-          <div class="flow-icon">✨</div>
-          <span class="flow-label">Auto-edit</span>
-        </div>
-        <span class="flow-arrow">→</span>
-        <div class="flow-step">
-          <div class="flow-icon">📋</div>
-          <span class="flow-label">Clipboard</span>
-        </div>
-        <span class="flow-arrow">→</span>
-        <div class="flow-step">
-          <div class="flow-icon">🚀</div>
-          <span class="flow-label">Share</span>
+        <div class="hud-actions">
+          <div class="hud-action">Copy</div>
+          <div class="hud-action">Open</div>
+          <div class="hud-action">Discard</div>
         </div>
       </div>
     </div>
   </div>
+  <p class="demo-caption">What you see: cursor moves, clicks zoom in, idle parts speed up, preview appears in the corner.</p>
 </div>
 
+<hr class="divider">
+
 <section class="features" id="features">
-  <div class="features-header">
-    <h2>Everything happens automatically</h2>
-    <p>No timeline. No editing. Just record and go.</p>
-  </div>
-  <div class="feature-grid">
-    <div class="feature-card">
-      <span class="feature-emoji">⚡</span>
-      <h3>Speed Ramping</h3>
-      <p>Idle moments get sped up 4-8x automatically. Active parts stay at normal speed. Your 30s recording becomes a tight 15s clip.</p>
+  <p class="section-label">Features</p>
+  <h2>No timeline.<br>No editing app.<br>Just record and go.</h2>
+  <div class="f-grid">
+    <div class="f-item">
+      <div class="f-icon">⚡</div>
+      <h3>Speed ramping</h3>
+      <p>Idle moments speed up 4–8x. Active parts stay normal. A 30s recording becomes a tight clip automatically.</p>
     </div>
-    <div class="feature-card">
-      <span class="feature-emoji">🔍</span>
-      <h3>Auto Zoom</h3>
-      <p>Clicks trigger smooth zoom-ins with spring physics. The camera follows your cursor cinematically, then eases back out.</p>
+    <div class="f-item">
+      <div class="f-icon">🔍</div>
+      <h3>Auto zoom on clicks</h3>
+      <p>Each click triggers a smooth zoom-in with spring physics. Camera pans between click positions cinematically.</p>
     </div>
-    <div class="feature-card">
-      <span class="feature-emoji">🖱️</span>
-      <h3>Cursor Rendering</h3>
-      <p>Your cursor is re-rendered with perfect sync. Click highlights show exactly where you clicked with an expanding ring effect.</p>
+    <div class="f-item">
+      <div class="f-icon">🖱</div>
+      <h3>Cursor + click rings</h3>
+      <p>Real macOS cursor rendered with perfect sync. Expanding ring highlights every click so viewers can follow along.</p>
     </div>
-    <div class="feature-card">
-      <span class="feature-emoji">👻</span>
-      <h3>Invisible App</h3>
-      <p>No window clutter. Lives in your menu bar. Double-tap Control to record, double-tap to stop. That's it.</p>
+    <div class="f-item">
+      <div class="f-icon">👻</div>
+      <h3>Invisible until needed</h3>
+      <p>No dock icon, no window. Lives in your menu bar. Double-tap Control to record, double-tap to stop.</p>
     </div>
-    <div class="feature-card">
-      <span class="feature-emoji">📋</span>
-      <h3>Instant Clipboard</h3>
-      <p>Finished recording saves to your clipboard automatically. Paste directly into Slack, Discord, or anywhere.</p>
+    <div class="f-item">
+      <div class="f-icon">📋</div>
+      <h3>Clipboard ready</h3>
+      <p>Finished video saves to your clipboard. A preview HUD appears in the corner — click to open or share.</p>
     </div>
-    <div class="feature-card">
-      <span class="feature-emoji">🎵</span>
-      <h3>Sound Effects</h3>
-      <p>Subtle audio blips confirm recording start and stop. A floating pill indicator shows you're recording with a live timer.</p>
+    <div class="f-item">
+      <div class="f-icon">🔊</div>
+      <h3>Audio feedback</h3>
+      <p>Synthesized start/stop tones and a floating recording pill with live timer so you always know the state.</p>
     </div>
   </div>
 </section>
 
-<section class="how" id="how">
-  <h2>Three seconds to perfect</h2>
-  <div class="steps">
-    <div class="step">
-      <div class="step-num">1</div>
-      <h3>Double-tap Control</h3>
-      <p>Quick double-tap starts recording. No menus, no dialogs, no setup.</p>
+<hr class="divider" id="how">
+
+<section class="how">
+  <p class="section-label">How it works</p>
+  <h2>Three steps. Zero friction.</h2>
+  <div class="steps-row">
+    <div class="step-card active">
+      <div class="step-num">Step 01</div>
+      <h3>Double-tap <kbd>Control</kbd></h3>
+      <p>Recording starts instantly. A floating pill appears with a live timer. No menus, no dialogs.</p>
     </div>
-    <div class="step">
-      <div class="step-num">2</div>
+    <div class="step-card">
+      <div class="step-num">Step 02</div>
       <h3>Do your thing</h3>
-      <p>Click around, navigate, type. Screenie captures everything with cursor tracking.</p>
+      <p>Click, scroll, type. Screenie tracks your cursor and logs every interaction for the auto-edit pass.</p>
     </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <h3>Double-tap to finish</h3>
-      <p>Screenie auto-edits and saves to clipboard. Paste anywhere instantly.</p>
+    <div class="step-card">
+      <div class="step-num">Step 03</div>
+      <h3>Double-tap to stop</h3>
+      <p>Screenie edits the video — speed ramp, zoom, cursor — and copies it to your clipboard. Preview pops up in the corner.</p>
     </div>
   </div>
 </section>
 
-<section class="cta">
-  <div class="cta-box">
-    <h2>Ready to record?</h2>
-    <p>Free, open source, and ridiculously fast. Download Screenie and never touch a video editor again.</p>
-    <a href="https://github.com/amywork777/Blink" class="btn-primary">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Download for Mac
+<hr class="divider">
+
+<section class="oss">
+  <div class="oss-box">
+    <div class="oss-left">
+      <h3>Open source, always free</h3>
+      <p>Built in public. MIT licensed. Star us on GitHub or fork and make it yours.</p>
+    </div>
+    <a href="https://github.com/amywork777/Blink" class="btn-gh">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      View on GitHub
     </a>
   </div>
+</section>
+
+<hr class="divider">
+
+<section class="final-cta">
+  <h2>Try it. You'll never open<br>a video editor again.</h2>
+  <p>Download Screenie, double-tap Control, and see for yourself.</p>
+  <a href="https://github.com/amywork777/Blink/releases" class="btn-accent">Download for Mac — Free</a>
 </section>
 
 <footer>
-  <p>Made with ♡ · <a href="https://github.com/amywork777/Blink">GitHub</a> · screenie.studio</p>
+  <span>Screenie · screenie.studio</span>
+  <div class="footer-links">
+    <a href="https://github.com/amywork777/Blink">GitHub</a>
+    <a href="https://github.com/amywork777/Blink/releases">Releases</a>
+  </div>
 </footer>
 
 </body>
