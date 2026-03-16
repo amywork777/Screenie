@@ -1,9 +1,12 @@
 import AppKit
 import AVFoundation
+import ScreenCaptureKit
 
 final class MainWindow: NSWindow {
     private var statusLabel: NSTextField!
     private var hotkeyStatusLabel: NSTextField!
+    private var screenRecLabel: NSTextField!
+    private var micStatusLabel: NSTextField!
     private var audioCheckbox: NSButton!
     private var micCheckbox: NSButton!
 
@@ -83,37 +86,38 @@ final class MainWindow: NSWindow {
         divider2.boxType = .separator
         container.addSubview(divider2)
 
-        // Permissions
+        // Permissions — all three
         let permLabel = NSTextField(labelWithString: "Permissions")
         permLabel.font = .systemFont(ofSize: 11, weight: .semibold)
         permLabel.textColor = .tertiaryLabelColor
         permLabel.frame = NSRect(x: 30, y: 253, width: 100, height: 16)
         container.addSubview(permLabel)
 
-        hotkeyStatusLabel = NSTextField(labelWithString: "Checking accessibility...")
+        // Screen Recording
+        screenRecLabel = NSTextField(labelWithString: "Screen Recording: checking...")
+        screenRecLabel.font = .systemFont(ofSize: 12)
+        screenRecLabel.frame = NSRect(x: 30, y: 232, width: 300, height: 18)
+        container.addSubview(screenRecLabel)
+
+        // Accessibility
+        hotkeyStatusLabel = NSTextField(labelWithString: "Accessibility: checking...")
         hotkeyStatusLabel.font = .systemFont(ofSize: 12)
-        hotkeyStatusLabel.frame = NSRect(x: 30, y: 230, width: 280, height: 18)
+        hotkeyStatusLabel.frame = NSRect(x: 30, y: 212, width: 300, height: 18)
         container.addSubview(hotkeyStatusLabel)
 
-        let grantButton = NSButton(title: "Open Accessibility Settings", target: self, action: #selector(openAccessibilitySettings))
-        grantButton.bezelStyle = .rounded
-        grantButton.frame = NSRect(x: 30, y: 200, width: 200, height: 28)
-        container.addSubview(grantButton)
+        // Microphone
+        micStatusLabel = NSTextField(labelWithString: "Microphone: checking...")
+        micStatusLabel.font = .systemFont(ofSize: 12)
+        micStatusLabel.frame = NSRect(x: 30, y: 192, width: 300, height: 18)
+        container.addSubview(micStatusLabel)
 
-        // Mic permission
-        let micPermLabel = NSTextField(labelWithString: "Microphone: tap to grant")
-        micPermLabel.font = .systemFont(ofSize: 12)
-        micPermLabel.textColor = .systemOrange
-        micPermLabel.frame = NSRect(x: 30, y: 172, width: 280, height: 18)
-        container.addSubview(micPermLabel)
-
-        let micGrantButton = NSButton(title: "Grant Microphone Access", target: self, action: #selector(requestMicPermission))
-        micGrantButton.bezelStyle = .rounded
-        micGrantButton.frame = NSRect(x: 30, y: 140, width: 200, height: 28)
-        container.addSubview(micGrantButton)
+        let fixPermsButton = NSButton(title: "Fix Permissions", target: self, action: #selector(openAllSettings))
+        fixPermsButton.bezelStyle = .rounded
+        fixPermsButton.frame = NSRect(x: 30, y: 160, width: 140, height: 28)
+        container.addSubview(fixPermsButton)
 
         // Divider
-        let divider3 = NSBox(frame: NSRect(x: 30, y: 128, width: 320, height: 1))
+        let divider3 = NSBox(frame: NSRect(x: 30, y: 148, width: 320, height: 1))
         divider3.boxType = .separator
         container.addSubview(divider3)
 
@@ -121,16 +125,16 @@ final class MainWindow: NSWindow {
         let settingsLabel = NSTextField(labelWithString: "Settings")
         settingsLabel.font = .systemFont(ofSize: 11, weight: .semibold)
         settingsLabel.textColor = .tertiaryLabelColor
-        settingsLabel.frame = NSRect(x: 30, y: 100, width: 100, height: 16)
+        settingsLabel.frame = NSRect(x: 30, y: 120, width: 100, height: 16)
         container.addSubview(settingsLabel)
 
         audioCheckbox = NSButton(checkboxWithTitle: "Capture system audio", target: self, action: #selector(toggleAudio))
-        audioCheckbox.frame = NSRect(x: 28, y: 74, width: 200, height: 22)
+        audioCheckbox.frame = NSRect(x: 28, y: 94, width: 200, height: 22)
         audioCheckbox.state = Settings.shared.captureAudio ? .on : .off
         container.addSubview(audioCheckbox)
 
         micCheckbox = NSButton(checkboxWithTitle: "Capture microphone", target: self, action: #selector(toggleMic))
-        micCheckbox.frame = NSRect(x: 28, y: 50, width: 200, height: 22)
+        micCheckbox.frame = NSRect(x: 28, y: 70, width: 200, height: 22)
         micCheckbox.state = Settings.shared.captureMicrophone ? .on : .off
         container.addSubview(micCheckbox)
 
@@ -141,7 +145,65 @@ final class MainWindow: NSWindow {
         infoLabel.frame = NSRect(x: 30, y: 12, width: 320, height: 16)
         container.addSubview(infoLabel)
 
+        // Check all permissions on load
+        refreshPermissions()
+
         contentView = container
+    }
+
+    func refreshPermissions() {
+        // Screen Recording — check by trying to get shareable content
+        Task {
+            do {
+                _ = try await SCShareableContent.current
+                await MainActor.run {
+                    screenRecLabel.stringValue = "Screen Recording: Granted"
+                    screenRecLabel.textColor = .systemGreen
+                }
+            } catch {
+                await MainActor.run {
+                    screenRecLabel.stringValue = "Screen Recording: Not Granted"
+                    screenRecLabel.textColor = .systemOrange
+                }
+            }
+        }
+
+        // Accessibility
+        if AXIsProcessTrusted() {
+            hotkeyStatusLabel.stringValue = "Accessibility: Granted"
+            hotkeyStatusLabel.textColor = .systemGreen
+        } else {
+            hotkeyStatusLabel.stringValue = "Accessibility: Not Granted"
+            hotkeyStatusLabel.textColor = .systemOrange
+        }
+
+        // Microphone
+        let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
+        switch micStatus {
+        case .authorized:
+            micStatusLabel.stringValue = "Microphone: Granted"
+            micStatusLabel.textColor = .systemGreen
+        case .denied, .restricted:
+            micStatusLabel.stringValue = "Microphone: Denied"
+            micStatusLabel.textColor = .systemRed
+        case .notDetermined:
+            micStatusLabel.stringValue = "Microphone: Not Yet Asked"
+            micStatusLabel.textColor = .systemOrange
+        @unknown default:
+            micStatusLabel.stringValue = "Microphone: Unknown"
+            micStatusLabel.textColor = .secondaryLabelColor
+        }
+    }
+
+    @objc private func openAllSettings() {
+        // Open Privacy & Security
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy") {
+            NSWorkspace.shared.open(url)
+        }
+        // Refresh after a delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            self?.refreshPermissions()
+        }
     }
 
     @objc private func openAccessibilitySettings() {
