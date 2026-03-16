@@ -187,7 +187,51 @@ final class SimpleEditor {
 
         let editedDuration = lastOutputTime.seconds
         let fileSize = (try? FileManager.default.attributesOfItem(atPath: outputURL.path)[.size] as? Int) ?? 0
-        NSLog("Screenie: Done! %d frames, %.1fs → %.1fs, %d bytes", frameCount, durationSecs, editedDuration, fileSize)
+        NSLog("Screenie: Video done! %d frames, %.1fs → %.1fs, %d bytes", frameCount, durationSecs, editedDuration, fileSize)
+
+        // 5. Merge audio from raw recording into edited video
+        let audioTracks = try await asset.loadTracks(withMediaType: .audio)
+        if let rawAudioTrack = audioTracks.first {
+            NSLog("Screenie: Merging audio into edited video...")
+            let tempURL = outputURL.deletingLastPathComponent().appendingPathComponent("with_audio.mp4")
+            do {
+                let editedAsset = AVURLAsset(url: outputURL)
+                let editedVideoTracks = try await editedAsset.loadTracks(withMediaType: .video)
+                guard let editedVideoTrack = editedVideoTracks.first else { throw NSError(domain: "Screenie", code: 20) }
+
+                let composition = AVMutableComposition()
+                let editedDur = try await editedAsset.load(.duration)
+
+                // Add edited video track
+                let compVideo = composition.addMutableTrack(withMediaType: .video, preferredTrackID: 1)!
+                try compVideo.insertTimeRange(CMTimeRange(start: .zero, duration: editedDur), of: editedVideoTrack, at: .zero)
+
+                // Add raw audio track (trimmed to edited video duration)
+                let compAudio = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: 2)!
+                let audioDur = min(try await rawAudioTrack.asset!.load(.duration), editedDur)
+                try compAudio.insertTimeRange(CMTimeRange(start: .zero, duration: audioDur), of: rawAudioTrack, at: .zero)
+
+                // Export merged
+                guard let session = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetHighestQuality) else {
+                    throw NSError(domain: "Screenie", code: 21)
+                }
+                session.outputURL = tempURL
+                session.outputFileType = .mp4
+                await session.export()
+
+                if session.status == .completed {
+                    try FileManager.default.removeItem(at: outputURL)
+                    try FileManager.default.moveItem(at: tempURL, to: outputURL)
+                    NSLog("Screenie: Audio merged!")
+                } else {
+                    NSLog("Screenie: Audio merge failed: %@", session.error?.localizedDescription ?? "unknown")
+                    try? FileManager.default.removeItem(at: tempURL)
+                }
+            } catch {
+                NSLog("Screenie: Audio merge error: %@, keeping video-only", error.localizedDescription)
+                try? FileManager.default.removeItem(at: tempURL)
+            }
+        }
 
         return Output(url: outputURL, originalDuration: durationSecs, editedDuration: editedDuration)
     }

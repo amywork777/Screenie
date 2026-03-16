@@ -14,7 +14,7 @@ final class Settings {
     }
 
     var captureAudio: Bool {
-        get { defaults.bool(forKey: Key.captureAudio.rawValue) }
+        get { defaults.object(forKey: Key.captureAudio.rawValue) as? Bool ?? true }
         set { defaults.set(newValue, forKey: Key.captureAudio.rawValue) }
     }
 
