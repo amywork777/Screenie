@@ -53,18 +53,13 @@ nav {
 .logo-mark {
   width: 28px;
   height: 28px;
-  background: linear-gradient(135deg, #9b7fd4, #e8849a);
   border-radius: 7px;
-  position: relative;
+  overflow: hidden;
 }
-.logo-mark::after {
-  content: '';
-  position: absolute;
-  width: 5px; height: 5px;
-  background: #fff;
-  border-radius: 50%;
-  top: 4px; right: 4px;
-  opacity: 0.9;
+.logo-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .nav-right {
@@ -683,6 +678,8 @@ footer a:hover { color: var(--text); }
 
 /* Responsive */
 @media (max-width: 768px) {
+  .hero-mascot { display: none; }
+  .hero { flex-direction: column !important; }
   .f-grid { grid-template-columns: 1fr; }
   .steps-row { grid-template-columns: 1fr; gap: 24px; }
   .oss-box { flex-direction: column; gap: 24px; text-align: center; }
@@ -696,7 +693,7 @@ footer a:hover { color: var(--text); }
 
 <nav>
   <a href="/" class="logo">
-    <div class="logo-mark"></div>
+    <div class="logo-mark"><img src="icon.png" alt="Screenie"></div>
     Screenie
   </a>
   <div class="nav-right">
@@ -710,8 +707,8 @@ footer a:hover { color: var(--text); }
   </div>
 </nav>
 
-<section class="hero">
-  <div class="hero-content">
+<section class="hero" style="display:flex;align-items:center;gap:60px;">
+  <div class="hero-content" style="flex:1;">
     <div class="badge">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 6v6l4 2"/></svg>
       Record → auto-edit → done in seconds
@@ -726,6 +723,9 @@ footer a:hover { color: var(--text); }
       </a>
     </div>
     <p class="hero-meta">Free &amp; open source · macOS 14+ · Apple Silicon &amp; Intel</p>
+  </div>
+  <div class="hero-mascot">
+    <img src="icon-nobg.png" alt="Screenie mascot" style="width:280px;height:280px;object-fit:contain;filter:drop-shadow(0 20px 40px rgba(0,0,0,0.1));">
   </div>
 </section>
 
