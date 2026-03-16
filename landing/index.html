@@ -32,27 +32,36 @@ a { color: inherit; }
 
 /* Nav */
 nav {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 24px 32px;
+  position: sticky;
+  top: 16px;
+  max-width: 720px;
+  margin: 16px auto 0;
+  padding: 10px 10px 10px 18px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 100px;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  z-index: 100;
 }
 
 .logo {
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: 1rem;
   letter-spacing: -0.03em;
   text-decoration: none;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .logo-mark {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 7px;
   overflow: hidden;
 }
@@ -65,13 +74,13 @@ nav {
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 20px;
 }
 
 .nav-right a {
   text-decoration: none;
-  font-size: 0.9rem;
-  color: var(--text-2);
+  font-size: 0.82rem;
+  color: var(--text-3);
   transition: color 0.15s;
 }
 .nav-right a:hover { color: var(--text); }
@@ -79,23 +88,23 @@ nav {
 .gh-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 20px;
-  background: var(--text);
+  gap: 6px;
+  padding: 8px 18px;
+  background: var(--accent);
   color: #fff;
-  border-radius: 8px;
+  border-radius: 100px;
   text-decoration: none;
-  font-weight: 500;
-  font-size: 0.88rem;
-  transition: opacity 0.15s;
+  font-weight: 600;
+  font-size: 0.82rem;
+  transition: opacity 0.15s, transform 0.15s;
 }
-.btn:hover { opacity: 0.85; }
+.btn:hover { opacity: 0.9; transform: translateY(-1px); }
 
 /* Hero */
 .hero {
