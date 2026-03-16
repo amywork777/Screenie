@@ -19,14 +19,14 @@ final class OnboardingWindow: NSWindow {
         ("🖥", "Welcome to Screenie",
          "Fast screen recordings that edit themselves.\nDouble-tap Control to record, double-tap to stop.\nScreenie handles zoom, speed ramp, and cursor tracking.",
          "Get Started"),
-        ("🔒", "Screen Recording",
-         "Screenie needs permission to capture your screen.\nA system dialog will appear — click Allow.",
-         "Enable Screen Recording"),
+        ("🔒", "Screen & Audio Recording",
+         "Screenie needs permission to capture your screen and system audio.\nA system dialog will appear — click Allow.\n\nThis lets Screenie record what's on screen and any audio playing on your Mac.",
+         "Enable Screen & Audio"),
         ("⌨️", "Accessibility",
          "Screenie needs Accessibility to detect your keyboard shortcut.\n\n1. Click the button below to open System Settings\n2. Find Screenie in the list and toggle it ON\n3. Come back here — Screenie will detect it automatically",
          "Open Accessibility Settings"),
         ("🎤", "Microphone (Optional)",
-         "Enable this if you want to record your voice.\nYou can skip this and enable it later.",
+         "Enable this to record your voice alongside your screen.\n\n1. Click the button below\n2. If a system dialog appears, click Allow\n3. If not, find Screenie in System Settings → Microphone and toggle it ON",
          "Enable Microphone"),
         ("✨", "You're all set!",
          "Double-tap Control to start recording.\nDouble-tap Control again to stop.\n\nYour edited recording is copied to your clipboard automatically.",
@@ -205,7 +205,7 @@ final class OnboardingWindow: NSWindow {
             }
 
         case 3:
-            // Microphone
+            // Microphone — try to actually use the mic to trigger the system dialog
             actionButton.isEnabled = false
             statusLabel.stringValue = "Requesting permission..."
 
@@ -216,31 +216,67 @@ final class OnboardingWindow: NSWindow {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     self.showStep(4)
                 }
-            } else if status == .notDetermined {
-                AVCaptureDevice.requestAccess(for: .audio) { granted in
-                    DispatchQueue.main.async {
-                        if granted {
-                            self.statusLabel.stringValue = "✓ Microphone granted!"
-                            self.statusLabel.textColor = .systemGreen
-                        } else {
-                            self.statusLabel.stringValue = "Denied — you can enable later in Settings"
-                            self.statusLabel.textColor = .systemOrange
-                        }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                            self.showStep(4)
+            } else {
+                // Try to start an actual capture session to force the dialog
+                do {
+                    let session = AVCaptureSession()
+                    if let mic = AVCaptureDevice.default(for: .audio) {
+                        let input = try AVCaptureDeviceInput(device: mic)
+                        if session.canAddInput(input) {
+                            session.addInput(input)
+                            session.startRunning()
+                            statusLabel.stringValue = "System dialog should appear — click Allow"
+                            statusLabel.textColor = .systemOrange
+
+                            // Poll for permission grant
+                            pollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                                guard let self else { return }
+                                let newStatus = AVCaptureDevice.authorizationStatus(for: .audio)
+                                if newStatus == .authorized {
+                                    self.pollTimer?.invalidate()
+                                    session.stopRunning()
+                                    self.statusLabel.stringValue = "✓ Microphone granted!"
+                                    self.statusLabel.textColor = .systemGreen
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                                        self.showStep(4)
+                                    }
+                                }
+                            }
+
+                            secondaryButton.isHidden = false
+                            secondaryButton.title = "Open Microphone Settings"
+                            return
                         }
                     }
+                } catch {
+                    NSLog("Screenie: Mic capture session error: %@", error.localizedDescription)
                 }
-            } else {
-                // Already denied — open settings
-                statusLabel.stringValue = "Opening Settings — toggle Screenie ON"
+
+                // Fallback — open settings directly
+                statusLabel.stringValue = "Open Settings and toggle Screenie ON for Microphone"
                 statusLabel.textColor = .systemOrange
                 secondaryButton.isHidden = false
-                secondaryButton.title = "Reopen Microphone Settings"
+                secondaryButton.title = "Open Microphone Settings"
                 if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
                     NSWorkspace.shared.open(url)
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+
+                // Poll for permission
+                pollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                    guard let self else { return }
+                    if AVCaptureDevice.authorizationStatus(for: .audio) == .authorized {
+                        self.pollTimer?.invalidate()
+                        self.statusLabel.stringValue = "✓ Microphone granted!"
+                        self.statusLabel.textColor = .systemGreen
+                        self.actionButton.title = "Continue"
+                        self.actionButton.isEnabled = true
+                    }
+                }
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
+                    // Auto-advance after 15s if user doesn't grant
+                    guard let self, self.currentStep == 3 else { return }
+                    self.pollTimer?.invalidate()
                     self.showStep(4)
                 }
             }
