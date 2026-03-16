@@ -78,7 +78,19 @@ final class ScreenRecorder: NSObject {
         )
         pixelBufferAdaptor = adaptor
 
-        // Audio disabled for recording reliability
+        // Audio writer — AAC encoding
+        if captureAudio {
+            let audioSettings: [String: Any] = [
+                AVFormatIDKey: kAudioFormatMPEG4AAC,
+                AVSampleRateKey: 48000,
+                AVNumberOfChannelsKey: 2,
+                AVEncoderBitRateKey: 128000,
+            ]
+            let aInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
+            aInput.expectsMediaDataInRealTime = true
+            writer.add(aInput)
+            audioWriterInput = aInput
+        }
 
         assetWriter = writer
         writer.startWriting()
@@ -107,6 +119,7 @@ final class ScreenRecorder: NSObject {
         }
 
         videoWriterInput?.markAsFinished()
+        audioWriterInput?.markAsFinished()
 
         if let writer = assetWriter, writer.status == .writing {
             await withCheckedContinuation { continuation in
