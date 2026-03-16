@@ -181,7 +181,7 @@ h1 {
   margin-top: 8px;
 }
 
-/* Demo — 10s loop with 4 clear phases */
+/* Demo — 6s loop, 3 phases, dead simple */
 .demo-section {
   max-width: 1080px;
   margin: 72px auto 0;
@@ -189,12 +189,11 @@ h1 {
 }
 
 .demo-frame {
-  background: #111;
+  background: #0e0e12;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #222;
   position: relative;
-  aspect-ratio: 16/10;
 }
 
 .demo-bar {
@@ -202,300 +201,192 @@ h1 {
   align-items: center;
   gap: 7px;
   padding: 12px 16px;
-  background: rgba(255,255,255,0.04);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.03);
 }
 .dot { width: 10px; height: 10px; border-radius: 50%; }
 .dot-r { background: #ff5f57; }
 .dot-y { background: #febc2e; }
 .dot-g { background: #28c840; }
 
-.demo-screen {
-  position: relative;
-  width: 100%;
-  height: calc(100% - 38px);
-  overflow: hidden;
-  background: linear-gradient(160deg, #1a1a2e 0%, #16213e 100%);
+.demo-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  min-height: 280px;
 }
 
-/* Fake code background */
-.fake-code {
-  position: absolute;
-  left: 10%;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 55%;
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  font-size: clamp(7px, 1.1vw, 12px);
-  color: rgba(255,255,255,0.4);
-  line-height: 2;
-  pointer-events: none;
-}
-.fake-code .kw { color: #c792ea; }
-.fake-code .fn { color: #82aaff; }
-.fake-code .str { color: #c3e88d; }
-
-/* Phase narration labels — appear sequentially */
-.phase-label {
-  position: absolute;
-  left: 50%;
-  bottom: 20px;
-  transform: translateX(-50%);
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(8px);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 6px 16px;
-  border-radius: 6px;
-  white-space: nowrap;
-  z-index: 30;
-  opacity: 0;
-  font-family: 'Satoshi', sans-serif;
-  letter-spacing: 0.01em;
-}
-
-/* 10s animation: 0-2s start | 2-7s recording | 7-8s stop | 8-10s preview */
-.phase-1 { animation: phase1 10s ease infinite; }
-.phase-2 { animation: phase2 10s ease infinite; }
-.phase-3 { animation: phase3 10s ease infinite; }
-.phase-4 { animation: phase4 10s ease infinite; }
-
-@keyframes phase1 {
-  0% { opacity: 0; }
-  3%, 18% { opacity: 1; }
-  22%, 100% { opacity: 0; }
-}
-@keyframes phase2 {
-  0%, 22% { opacity: 0; }
-  26%, 62% { opacity: 1; }
-  66%, 100% { opacity: 0; }
-}
-@keyframes phase3 {
-  0%, 66% { opacity: 0; }
-  70%, 78% { opacity: 1; }
-  82%, 100% { opacity: 0; }
-}
-@keyframes phase4 {
-  0%, 80% { opacity: 0; }
-  84%, 96% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-/* Key tap animation — phase 1 (0-2s) */
-.key-tap-overlay {
-  position: absolute;
-  inset: 0;
+.demo-phase {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  z-index: 25;
-  animation: keyOverlay 10s ease infinite;
-  pointer-events: none;
+  padding: 40px 24px;
+  position: relative;
+  border-right: 1px solid rgba(255,255,255,0.05);
 }
+.demo-phase:last-child { border-right: none; }
 
-@keyframes keyOverlay {
-  0% { opacity: 0; }
-  2%, 16% { opacity: 1; }
-  20%, 100% { opacity: 0; }
-}
-
-.key-visual {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.key-cap {
-  padding: 10px 20px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 8px;
-  color: #fff;
-  font-size: 14px;
+.demo-step-num {
+  font-size: 10px;
   font-weight: 600;
-  font-family: 'Satoshi', sans-serif;
-  animation: keyPress 10s ease infinite;
+  color: rgba(255,255,255,0.25);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 20px;
 }
 
-@keyframes keyPress {
-  0%, 3% { background: rgba(255,255,255,0.1); transform: scale(1); }
-  5%, 7% { background: rgba(155,127,212,0.6); transform: scale(0.92); box-shadow: 0 0 24px rgba(155,127,212,0.4); }
-  9%, 11% { background: rgba(255,255,255,0.1); transform: scale(1); }
-  12%, 14% { background: rgba(155,127,212,0.6); transform: scale(0.92); box-shadow: 0 0 24px rgba(155,127,212,0.4); }
-  16%, 100% { background: rgba(255,255,255,0.1); transform: scale(1); box-shadow: none; }
-}
-
-.key-x2 {
-  color: rgba(255,255,255,0.4);
+.demo-phase h3 {
+  color: #fff;
   font-size: 13px;
   font-weight: 500;
+  text-align: center;
+  margin-top: 16px;
+  line-height: 1.4;
 }
 
-/* Recording pill — phase 2 (2-7s) */
-.rec-pill {
+.demo-phase p {
+  color: rgba(255,255,255,0.35);
+  font-size: 11px;
+  text-align: center;
+  margin-top: 6px;
+  font-weight: 300;
+}
+
+/* Phase 1: Key tap */
+.demo-key {
+  padding: 12px 24px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Satoshi', sans-serif;
+  animation: tapKey 2s ease-in-out infinite;
+}
+
+@keyframes tapKey {
+  0%, 100% { background: rgba(255,255,255,0.07); transform: scale(1); }
+  20%, 30% { background: rgba(155,127,212,0.5); transform: scale(0.93); box-shadow: 0 0 20px rgba(155,127,212,0.3); }
+  45%, 55% { background: rgba(255,255,255,0.07); transform: scale(1); }
+  65%, 75% { background: rgba(155,127,212,0.5); transform: scale(0.93); box-shadow: 0 0 20px rgba(155,127,212,0.3); }
+}
+
+/* Phase 2: Recording mockup */
+.demo-rec-box {
+  width: 120px;
+  height: 80px;
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.demo-rec-pill {
   position: absolute;
-  top: 12px;
+  top: 5px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(15, 15, 15, 0.88);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  padding: 5px 14px;
+  background: rgba(0,0,0,0.6);
+  border-radius: 10px;
+  padding: 2px 8px;
   display: flex;
   align-items: center;
-  gap: 7px;
-  z-index: 20;
-  border: 1px solid rgba(255,255,255,0.08);
-  animation: recPill 10s ease infinite;
+  gap: 4px;
 }
 
-@keyframes recPill {
-  0%, 18% { opacity: 0; transform: translateX(-50%) translateY(-6px); }
-  22%, 68% { opacity: 1; transform: translateX(-50%) translateY(0); }
-  72%, 100% { opacity: 0; transform: translateX(-50%) translateY(-6px); }
-}
-
-.rec-dot-live {
-  width: 7px; height: 7px;
+.mini-dot {
+  width: 5px; height: 5px;
   background: var(--accent);
   border-radius: 50%;
-  animation: blink 1.2s ease-in-out infinite;
+  animation: blink 1s infinite;
 }
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
 
-.rec-time {
+.mini-time {
   color: #fff;
-  font-size: 10px;
+  font-size: 7px;
   font-family: 'SF Mono', monospace;
-  font-weight: 500;
 }
 
-/* Cursor — moves during phase 2 */
-.demo-cursor {
+/* Mini cursor + click ring */
+.mini-cursor {
   position: absolute;
-  width: 16px;
-  height: 20px;
-  pointer-events: none;
-  z-index: 15;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
-  opacity: 0;
-  animation: cursorAnim 10s ease-in-out infinite;
+  width: 10px; height: 12px;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5));
+  animation: miniMove 3s ease-in-out infinite;
+}
+@keyframes miniMove {
+  0%   { left: 25%; top: 40%; }
+  30%  { left: 55%; top: 35%; }
+  35%  { left: 55%; top: 35%; }
+  65%  { left: 40%; top: 60%; }
+  70%  { left: 40%; top: 60%; }
+  100% { left: 25%; top: 40%; }
 }
 
-@keyframes cursorAnim {
-  0%, 20%  { opacity: 0; left: 35%; top: 35%; }
-  24%      { opacity: 1; left: 35%; top: 35%; }
-  32%      { left: 50%; top: 42%; }
-  33%, 34% { left: 50%; top: 42%; } /* pause = click */
-  42%      { left: 38%; top: 58%; }
-  48%      { left: 60%; top: 50%; }
-  49%, 50% { left: 60%; top: 50%; } /* pause = click */
-  58%      { left: 45%; top: 38%; }
-  64%      { left: 55%; top: 55%; }
-  65%, 66% { left: 55%; top: 55%; } /* pause = click */
-  70%, 100%{ opacity: 0; left: 55%; top: 55%; }
-}
-
-/* Click rings — appear at cursor pause points */
-.click-ring {
+.mini-ring {
   position: absolute;
-  width: 28px; height: 28px;
-  border: 2px solid rgba(255,255,255,0.6);
+  width: 16px; height: 16px;
+  border: 1.5px solid rgba(255,255,255,0.5);
   border-radius: 50%;
   pointer-events: none;
-  z-index: 14;
+}
+.mini-ring-1 { animation: mring1 3s ease infinite; }
+.mini-ring-2 { animation: mring2 3s ease infinite; }
+
+@keyframes mring1 {
+  0%, 29% { opacity: 0; left: calc(55% - 3px); top: calc(35% + 2px); transform: scale(0.3); }
+  31% { opacity: 1; transform: scale(0.3); }
+  38% { opacity: 0; transform: scale(1.2); }
+  39%, 100% { opacity: 0; }
+}
+@keyframes mring2 {
+  0%, 64% { opacity: 0; left: calc(40% - 3px); top: calc(60% + 2px); transform: scale(0.3); }
+  66% { opacity: 1; transform: scale(0.3); }
+  73% { opacity: 0; transform: scale(1.2); }
+  74%, 100% { opacity: 0; }
 }
 
-.click-1 { animation: ring1 10s ease infinite; }
-.click-2 { animation: ring2 10s ease infinite; }
-.click-3 { animation: ring3 10s ease infinite; }
-
-@keyframes ring1 {
-  0%, 32% { opacity: 0; left: calc(50% - 14px); top: calc(42% - 4px); transform: scale(0.4); }
-  33% { opacity: 1; transform: scale(0.4); }
-  37% { opacity: 0; transform: scale(1.4); }
-  38%, 100% { opacity: 0; }
-}
-@keyframes ring2 {
-  0%, 48% { opacity: 0; left: calc(60% - 14px); top: calc(50% - 4px); transform: scale(0.4); }
-  49% { opacity: 1; transform: scale(0.4); }
-  53% { opacity: 0; transform: scale(1.4); }
-  54%, 100% { opacity: 0; }
-}
-@keyframes ring3 {
-  0%, 64% { opacity: 0; left: calc(55% - 14px); top: calc(55% - 4px); transform: scale(0.4); }
-  65% { opacity: 1; transform: scale(0.4); }
-  69% { opacity: 0; transform: scale(1.4); }
-  70%, 100% { opacity: 0; }
-}
-
-/* Zoom effect — subtle scale on the screen content during clicks */
-.zoom-layer {
-  position: absolute;
-  inset: 0;
-  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-  transform-origin: 50% 42%;
-  animation: zoomAnim 10s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 5;
-}
-
-@keyframes zoomAnim {
-  0%, 20%  { transform: scale(1); transform-origin: 50% 42%; }
-  33%, 36% { transform: scale(1.15); transform-origin: 50% 42%; }
-  40%      { transform: scale(1); }
-  49%, 52% { transform: scale(1.15); transform-origin: 60% 50%; }
-  56%      { transform: scale(1); }
-  65%, 68% { transform: scale(1.15); transform-origin: 55% 55%; }
-  72%, 100%{ transform: scale(1); }
-}
-
-/* Preview HUD — phase 4 (8-10s) */
-.preview-hud {
-  position: absolute;
-  bottom: 14px;
-  right: 14px;
+/* Phase 3: Preview HUD */
+.demo-hud {
   width: 130px;
-  background: rgba(25, 25, 25, 0.92);
-  backdrop-filter: blur(10px);
+  background: rgba(30,30,30,0.95);
   border-radius: 9px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  z-index: 25;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
   border: 1px solid rgba(255,255,255,0.08);
-  animation: hudAnim 10s ease infinite;
 }
 
-@keyframes hudAnim {
-  0%, 78% { opacity: 0; transform: translateY(10px) scale(0.95); }
-  82%, 96% { opacity: 1; transform: translateY(0) scale(1); }
-  100% { opacity: 0; }
-}
-
-.hud-thumb {
-  height: 62px;
+.demo-hud-thumb {
+  height: 65px;
   background: linear-gradient(135deg, #1a1a2e, #16213e);
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.hud-badge {
+
+.demo-hud-badge {
   position: absolute;
-  top: 4px; left: 4px;
+  top: 4px; left: 5px;
   background: #28c840;
   color: #fff;
-  font-size: 6px;
+  font-size: 6.5px;
   padding: 1px 5px;
   border-radius: 3px;
   font-weight: 700;
-  letter-spacing: 0.03em;
 }
-.hud-dur {
+
+.demo-hud-play {
+  color: rgba(255,255,255,0.15);
+  font-size: 18px;
+}
+
+.demo-hud-dur {
   position: absolute;
   bottom: 3px; right: 5px;
   color: #fff;
@@ -505,24 +396,33 @@ h1 {
   padding: 1px 4px;
   border-radius: 2px;
 }
-.hud-play {
-  color: rgba(255,255,255,0.2);
-  font-size: 16px;
-}
-.hud-actions {
+
+.demo-hud-actions {
   display: flex;
   border-top: 1px solid rgba(255,255,255,0.07);
 }
-.hud-act {
+
+.demo-hud-act {
   flex: 1;
   padding: 6px 0;
   text-align: center;
-  color: rgba(255,255,255,0.65);
-  font-size: 6.5px;
+  color: rgba(255,255,255,0.6);
+  font-size: 7px;
   font-weight: 500;
   border-right: 1px solid rgba(255,255,255,0.05);
 }
-.hud-act:last-child { border-right: none; color: rgba(255,255,255,0.35); }
+.demo-hud-act:last-child { border-right: none; color: rgba(255,255,255,0.35); }
+
+/* Arrow between phases */
+.demo-arrow {
+  position: absolute;
+  right: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255,255,255,0.12);
+  font-size: 12px;
+  z-index: 5;
+}
 
 /* Caption */
 .demo-caption {
@@ -531,6 +431,12 @@ h1 {
   color: var(--text-3);
   font-size: 0.85rem;
   font-weight: 300;
+}
+
+@media (max-width: 768px) {
+  .demo-body { grid-template-columns: 1fr; }
+  .demo-phase { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 28px 24px; }
+  .demo-arrow { display: none; }
 }
 
 /* Divider */
@@ -830,73 +736,58 @@ footer a:hover { color: var(--text); }
       <div class="dot dot-y"></div>
       <div class="dot dot-g"></div>
     </div>
-    <div class="demo-screen">
+    <div class="demo-body">
 
-      <!-- Background code (always visible, zooms on clicks) -->
-      <div class="zoom-layer">
-        <div class="fake-code">
-          <span class="kw">func</span> <span class="fn">handleRequest</span>() {<br>
-          &nbsp;&nbsp;<span class="kw">let</span> data = <span class="fn">fetchData</span>()<br>
-          &nbsp;&nbsp;<span class="fn">render</span>(data)<br>
-          }<br><br>
-          <span class="kw">func</span> <span class="fn">deploy</span>() <span class="kw">async</span> {<br>
-          &nbsp;&nbsp;<span class="kw">try await</span> <span class="fn">build</span>()<br>
-          &nbsp;&nbsp;<span class="fn">push</span>(to: <span class="str">"prod"</span>)<br>
-          }<br><br>
-          <span class="kw">struct</span> <span class="fn">Config</span> {<br>
-          &nbsp;&nbsp;<span class="kw">let</span> env = <span class="str">"production"</span><br>
-          &nbsp;&nbsp;<span class="kw">let</span> port = <span class="str">"8080"</span><br>
-          }
-        </div>
+      <!-- Step 1: Trigger -->
+      <div class="demo-phase">
+        <div class="demo-step-num">Step 1</div>
+        <div class="demo-key">Control</div>
+        <h3>Double-tap to start</h3>
+        <p>That's it. Recording begins.</p>
+        <span class="demo-arrow">→</span>
       </div>
 
-      <!-- Phase 1: Key tap overlay -->
-      <div class="key-tap-overlay">
-        <div class="key-visual">
-          <div class="key-cap">Control</div>
-          <span class="key-x2">× 2</span>
+      <!-- Step 2: Recording -->
+      <div class="demo-phase">
+        <div class="demo-step-num">Step 2</div>
+        <div class="demo-rec-box">
+          <div class="demo-rec-pill">
+            <div class="mini-dot"></div>
+            <span class="mini-time">0:04</span>
+          </div>
+          <svg class="mini-cursor" viewBox="0 0 10 12" fill="none">
+            <path d="M1 1l3.5 10 1.5-3.5 4-1.5L1 1z" fill="white" stroke="black" stroke-width="0.8"/>
+          </svg>
+          <div class="mini-ring mini-ring-1"></div>
+          <div class="mini-ring mini-ring-2"></div>
         </div>
+        <h3>Do your thing</h3>
+        <p>Click, scroll, type. All tracked.</p>
+        <span class="demo-arrow">→</span>
       </div>
 
-      <!-- Phase 2: Recording pill -->
-      <div class="rec-pill">
-        <div class="rec-dot-live"></div>
-        <span class="rec-time">0:04</span>
-      </div>
-
-      <!-- Phase 2: Cursor -->
-      <svg class="demo-cursor" viewBox="0 0 16 20" fill="none">
-        <path d="M1 1l5 17 2.5-6 7-2.5L1 1z" fill="white" stroke="black" stroke-width="1.2"/>
-      </svg>
-
-      <!-- Phase 2: Click rings -->
-      <div class="click-ring click-1"></div>
-      <div class="click-ring click-2"></div>
-      <div class="click-ring click-3"></div>
-
-      <!-- Phase 4: Preview HUD -->
-      <div class="preview-hud">
-        <div class="hud-thumb">
-          <div class="hud-badge">Copied</div>
-          <span class="hud-play">▶</span>
-          <div class="hud-dur">0:06</div>
+      <!-- Step 3: Result -->
+      <div class="demo-phase">
+        <div class="demo-step-num">Step 3</div>
+        <div class="demo-hud">
+          <div class="demo-hud-thumb">
+            <div class="demo-hud-badge">Copied</div>
+            <span class="demo-hud-play">▶</span>
+            <div class="demo-hud-dur">0:06</div>
+          </div>
+          <div class="demo-hud-actions">
+            <div class="demo-hud-act">Copy</div>
+            <div class="demo-hud-act">Open</div>
+            <div class="demo-hud-act">Discard</div>
+          </div>
         </div>
-        <div class="hud-actions">
-          <div class="hud-act">Copy</div>
-          <div class="hud-act">Open</div>
-          <div class="hud-act">Discard</div>
-        </div>
+        <h3>Auto-edited &amp; ready</h3>
+        <p>Zoom, speed ramp, clipboard.</p>
       </div>
-
-      <!-- Phase labels narrating what's happening -->
-      <div class="phase-label phase-1">Double-tap Control to start recording</div>
-      <div class="phase-label phase-2">Recording — cursor tracked, clicks detected</div>
-      <div class="phase-label phase-3">Double-tap Control to stop — auto-editing...</div>
-      <div class="phase-label phase-4">Done! Preview appears, copied to clipboard</div>
 
     </div>
   </div>
-  <p class="demo-caption">10-second loop showing the full workflow — from start to clipboard.</p>
+  <p class="demo-caption">Three steps. No video editor. No timeline. Just record and share.</p>
 </div>
 
 <hr class="divider">
