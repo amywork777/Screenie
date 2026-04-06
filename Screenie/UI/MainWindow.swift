@@ -1,6 +1,5 @@
 import AppKit
 import AVFoundation
-import ScreenCaptureKit
 
 final class MainWindow: NSWindow {
     private var statusLabel: NSTextField!
@@ -241,19 +240,12 @@ final class MainWindow: NSWindow {
     // MARK: - Permissions
 
     func refreshPermissions() {
-        Task {
-            do {
-                _ = try await SCShareableContent.current
-                await MainActor.run {
-                    screenRecLabel.stringValue = "Screen Recording: Granted"
-                    screenRecLabel.textColor = .systemGreen
-                }
-            } catch {
-                await MainActor.run {
-                    screenRecLabel.stringValue = "Screen Recording: Not Granted"
-                    screenRecLabel.textColor = .systemOrange
-                }
-            }
+        if CGPreflightScreenCaptureAccess() {
+            screenRecLabel.stringValue = "Screen Recording: Granted"
+            screenRecLabel.textColor = .systemGreen
+        } else {
+            screenRecLabel.stringValue = "Screen Recording: Not Granted"
+            screenRecLabel.textColor = .systemOrange
         }
 
         if AXIsProcessTrusted() {
@@ -286,6 +278,8 @@ final class MainWindow: NSWindow {
     @objc private func onRefreshPerms() { refreshPermissions() }
 
     @objc private func openScreenRecSettings() {
+        // Try the proper request API first, then open settings
+        CGRequestScreenCaptureAccess()
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
             NSWorkspace.shared.open(url)
         }
