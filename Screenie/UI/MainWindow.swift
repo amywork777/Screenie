@@ -9,20 +9,30 @@ final class MainWindow: NSWindow {
     private var micStatusLabel: NSTextField!
     private var audioCheckbox: NSButton!
     private var micCheckbox: NSButton!
+    private var monitorCheckbox: NSButton!
+    private var colorWell: NSColorWell!
+    private var autoZoomCheckbox: NSButton!
+    private var autoFollowCheckbox: NSButton!
+    private var cursorBounceCheckbox: NSButton!
+    private var speedRampCheckbox: NSButton!
+    private var keystrokeCheckbox: NSButton!
+    private var cursorSmoothCheckbox: NSButton!
+    private var advancedBox: NSView!
 
     weak var mainDelegate: MainWindowDelegate?
 
     init() {
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 380, height: 460),
+            contentRect: NSRect(x: 0, y: 0, width: 340, height: 100),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: true
         )
         title = "Screenie"
         isReleasedWhenClosed = false
-        center()
         setupViews()
+        sizeToContent(animate: false)
+        center()
     }
 
     func updateRecordingStatus(_ recording: Bool) {
@@ -30,7 +40,7 @@ final class MainWindow: NSWindow {
             statusLabel.stringValue = "Recording..."
             statusLabel.textColor = .systemRed
         } else {
-            statusLabel.stringValue = "Ready — hold Right Option to record"
+            statusLabel.stringValue = "Ready — double-tap Right Control to record"
             statusLabel.textColor = .secondaryLabelColor
         }
     }
@@ -45,133 +55,192 @@ final class MainWindow: NSWindow {
         }
     }
 
+    // MARK: - Layout
+
     private func setupViews() {
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 460))
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 4
+        stack.edgeInsets = NSEdgeInsets(top: 8, left: 24, bottom: 16, right: 24)
 
-        // App title
+        // Title
         let titleLabel = NSTextField(labelWithString: "Screenie")
-        titleLabel.font = .systemFont(ofSize: 32, weight: .bold)
-        titleLabel.frame = NSRect(x: 30, y: 400, width: 200, height: 40)
-        container.addSubview(titleLabel)
+        titleLabel.font = .systemFont(ofSize: 20, weight: .bold)
+        stack.addArrangedSubview(titleLabel)
 
-        let subtitleLabel = NSTextField(labelWithString: "Fast Screen Recordings")
-        subtitleLabel.font = .systemFont(ofSize: 14)
-        subtitleLabel.textColor = .secondaryLabelColor
-        subtitleLabel.frame = NSRect(x: 30, y: 375, width: 300, height: 20)
-        container.addSubview(subtitleLabel)
+        let subtitle = NSTextField(labelWithString: "Fast Screen Recordings")
+        subtitle.font = .systemFont(ofSize: 12)
+        subtitle.textColor = .secondaryLabelColor
+        stack.addArrangedSubview(subtitle)
 
-        // Divider
-        let divider = NSBox(frame: NSRect(x: 30, y: 365, width: 320, height: 1))
-        divider.boxType = .separator
-        container.addSubview(divider)
+        stack.addArrangedSubview(makeDivider())
 
         // Status
         statusLabel = NSTextField(labelWithString: "Ready — double-tap Right Control to record")
-        statusLabel.font = .systemFont(ofSize: 13)
+        statusLabel.font = .systemFont(ofSize: 11)
         statusLabel.textColor = .secondaryLabelColor
-        statusLabel.frame = NSRect(x: 30, y: 335, width: 320, height: 20)
-        container.addSubview(statusLabel)
+        stack.addArrangedSubview(statusLabel)
 
-        // Hotkey instructions
-        let instructionLabel = NSTextField(wrappingLabelWithString:
-            "Double-tap Right Control — start recording\nDouble-tap Right Control again — stop recording"
-        )
-        instructionLabel.font = .systemFont(ofSize: 12)
-        instructionLabel.textColor = .tertiaryLabelColor
-        instructionLabel.frame = NSRect(x: 30, y: 290, width: 320, height: 35)
-        container.addSubview(instructionLabel)
+        stack.addArrangedSubview(makeDivider())
 
-        // Divider
-        let divider2 = NSBox(frame: NSRect(x: 30, y: 280, width: 320, height: 1))
-        divider2.boxType = .separator
-        container.addSubview(divider2)
-
-        // Permissions — all three
-        let permLabel = NSTextField(labelWithString: "Permissions")
-        permLabel.font = .systemFont(ofSize: 11, weight: .semibold)
-        permLabel.textColor = .tertiaryLabelColor
-        permLabel.frame = NSRect(x: 30, y: 253, width: 100, height: 16)
-        container.addSubview(permLabel)
-
-        // Screen Recording
-        screenRecLabel = NSTextField(labelWithString: "Screen Recording: checking...")
-        screenRecLabel.font = .systemFont(ofSize: 12)
-        screenRecLabel.frame = NSRect(x: 30, y: 235, width: 200, height: 18)
-        container.addSubview(screenRecLabel)
-
-        let fixScreenBtn = NSButton(title: "Fix", target: self, action: #selector(openScreenRecSettings))
-        fixScreenBtn.bezelStyle = .inline
-        fixScreenBtn.font = .systemFont(ofSize: 11)
-        fixScreenBtn.frame = NSRect(x: 240, y: 234, width: 40, height: 20)
-        container.addSubview(fixScreenBtn)
-
-        // Accessibility
-        hotkeyStatusLabel = NSTextField(labelWithString: "Accessibility: checking...")
-        hotkeyStatusLabel.font = .systemFont(ofSize: 12)
-        hotkeyStatusLabel.frame = NSRect(x: 30, y: 212, width: 200, height: 18)
-        container.addSubview(hotkeyStatusLabel)
-
-        let fixAccessBtn = NSButton(title: "Fix", target: self, action: #selector(openAccessibilitySettings))
-        fixAccessBtn.bezelStyle = .inline
-        fixAccessBtn.font = .systemFont(ofSize: 11)
-        fixAccessBtn.frame = NSRect(x: 240, y: 211, width: 40, height: 20)
-        container.addSubview(fixAccessBtn)
-
-        // Microphone
-        micStatusLabel = NSTextField(labelWithString: "Microphone: checking...")
-        micStatusLabel.font = .systemFont(ofSize: 12)
-        micStatusLabel.frame = NSRect(x: 30, y: 189, width: 200, height: 18)
-        container.addSubview(micStatusLabel)
-
-        let fixMicBtn = NSButton(title: "Fix", target: self, action: #selector(openMicSettings))
-        fixMicBtn.bezelStyle = .inline
-        fixMicBtn.font = .systemFont(ofSize: 11)
-        fixMicBtn.frame = NSRect(x: 240, y: 188, width: 40, height: 20)
-        container.addSubview(fixMicBtn)
-
+        // Permissions
+        stack.addArrangedSubview(makeSectionLabel("Permissions"))
+        stack.addArrangedSubview(makePermRow(label: "Screen Recording", fixAction: #selector(openScreenRecSettings), assignTo: &screenRecLabel))
+        let accRow = makePermRow(label: "Accessibility", fixAction: #selector(openAccessibilitySettings), assignTo: &hotkeyStatusLabel)
         let refreshBtn = NSButton(title: "Refresh", target: self, action: #selector(onRefreshPerms))
         refreshBtn.bezelStyle = .inline
-        refreshBtn.font = .systemFont(ofSize: 11)
-        refreshBtn.frame = NSRect(x: 290, y: 211, width: 60, height: 20)
-        container.addSubview(refreshBtn)
+        refreshBtn.font = .systemFont(ofSize: 10)
+        refreshBtn.translatesAutoresizingMaskIntoConstraints = false
+        accRow.addSubview(refreshBtn)
+        NSLayoutConstraint.activate([refreshBtn.trailingAnchor.constraint(equalTo: accRow.trailingAnchor), refreshBtn.centerYAnchor.constraint(equalTo: accRow.centerYAnchor)])
+        stack.addArrangedSubview(accRow)
+        stack.addArrangedSubview(makePermRow(label: "Microphone", fixAction: #selector(openMicSettings), assignTo: &micStatusLabel))
 
-        // Divider
-        let divider3 = NSBox(frame: NSRect(x: 30, y: 148, width: 320, height: 1))
-        divider3.boxType = .separator
-        container.addSubview(divider3)
+        stack.addArrangedSubview(makeDivider())
 
         // Settings
-        let settingsLabel = NSTextField(labelWithString: "Settings")
-        settingsLabel.font = .systemFont(ofSize: 11, weight: .semibold)
-        settingsLabel.textColor = .tertiaryLabelColor
-        settingsLabel.frame = NSRect(x: 30, y: 120, width: 100, height: 16)
-        container.addSubview(settingsLabel)
+        stack.addArrangedSubview(makeSectionLabel("Settings"))
+        audioCheckbox = makeCheckbox("Capture system audio", action: #selector(toggleAudio), on: Settings.shared.captureAudio)
+        stack.addArrangedSubview(audioCheckbox)
+        micCheckbox = makeCheckbox("Capture microphone", action: #selector(toggleMic), on: Settings.shared.captureMicrophone)
+        stack.addArrangedSubview(micCheckbox)
+        monitorCheckbox = makeCheckbox("Monitor style frame", action: #selector(toggleMonitorStyle), on: Settings.shared.monitorStyle)
+        stack.addArrangedSubview(monitorCheckbox)
 
-        audioCheckbox = NSButton(checkboxWithTitle: "Capture system audio", target: self, action: #selector(toggleAudio))
-        audioCheckbox.frame = NSRect(x: 28, y: 94, width: 200, height: 22)
-        audioCheckbox.state = Settings.shared.captureAudio ? .on : .off
-        container.addSubview(audioCheckbox)
+        let bgRow = NSStackView()
+        bgRow.orientation = .horizontal
+        bgRow.spacing = 8
+        let bgLabel = NSTextField(labelWithString: "Background:")
+        bgLabel.font = .systemFont(ofSize: 11)
+        bgLabel.textColor = .secondaryLabelColor
+        bgRow.addArrangedSubview(bgLabel)
+        let bg = Settings.shared.bgColor
+        colorWell = NSColorWell(frame: NSRect(x: 0, y: 0, width: 32, height: 20))
+        colorWell.color = NSColor(red: bg.r, green: bg.g, blue: bg.b, alpha: 1.0)
+        colorWell.target = self
+        colorWell.action = #selector(bgColorChanged)
+        colorWell.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([colorWell.widthAnchor.constraint(equalToConstant: 32), colorWell.heightAnchor.constraint(equalToConstant: 20)])
+        bgRow.addArrangedSubview(colorWell)
+        stack.addArrangedSubview(bgRow)
 
-        micCheckbox = NSButton(checkboxWithTitle: "Capture microphone", target: self, action: #selector(toggleMic))
-        micCheckbox.frame = NSRect(x: 28, y: 70, width: 200, height: 22)
-        micCheckbox.state = Settings.shared.captureMicrophone ? .on : .off
-        container.addSubview(micCheckbox)
+        stack.addArrangedSubview(makeDivider())
 
-        // Bottom info
-        let infoLabel = NSTextField(labelWithString: "Recordings saved to ~/Recordings/Screenie/")
-        infoLabel.font = .systemFont(ofSize: 11)
-        infoLabel.textColor = .tertiaryLabelColor
-        infoLabel.frame = NSRect(x: 30, y: 12, width: 320, height: 16)
-        container.addSubview(infoLabel)
+        // Advanced toggle
+        let advButton = NSButton(title: "▶ Advanced", target: self, action: #selector(toggleAdvanced))
+        advButton.bezelStyle = .inline
+        advButton.font = .systemFont(ofSize: 11, weight: .medium)
+        advButton.tag = 0
+        stack.addArrangedSubview(advButton)
 
-        // Check all permissions on load
+        // Advanced content (hidden)
+        advancedBox = NSStackView()
+        let advStack = advancedBox as! NSStackView
+        advStack.orientation = .vertical
+        advStack.alignment = .leading
+        advStack.spacing = 2
+
+        advStack.addArrangedSubview(makeSectionLabel("Editing"))
+        autoZoomCheckbox = makeCheckbox("Auto-zoom on clicks", action: #selector(toggleAutoZoom), on: Settings.shared.autoZoom)
+        advStack.addArrangedSubview(autoZoomCheckbox)
+        autoFollowCheckbox = makeCheckbox("Camera auto-follow", action: #selector(toggleAutoFollow), on: Settings.shared.autoFollow)
+        advStack.addArrangedSubview(autoFollowCheckbox)
+        speedRampCheckbox = makeCheckbox("Speed ramping", action: #selector(toggleSpeedRamp), on: Settings.shared.speedRamping)
+        advStack.addArrangedSubview(speedRampCheckbox)
+        cursorBounceCheckbox = makeCheckbox("Cursor bounce on click", action: #selector(toggleCursorBounce), on: Settings.shared.cursorBounce)
+        advStack.addArrangedSubview(cursorBounceCheckbox)
+        cursorSmoothCheckbox = makeCheckbox("Cursor smoothing", action: #selector(toggleCursorSmooth), on: Settings.shared.cursorSmoothing)
+        advStack.addArrangedSubview(cursorSmoothCheckbox)
+        keystrokeCheckbox = makeCheckbox("Keystroke overlay", action: #selector(toggleKeystroke), on: Settings.shared.keystrokeOverlay)
+        advStack.addArrangedSubview(keystrokeCheckbox)
+
+        advancedBox.isHidden = true
+        stack.addArrangedSubview(advancedBox)
+
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        let scroll = NSScrollView()
+        scroll.documentView = stack
+        scroll.hasVerticalScroller = false
+        scroll.drawsBackground = false
+        contentView = scroll
+
+        NSLayoutConstraint.activate([
+            stack.widthAnchor.constraint(equalToConstant: 340)
+        ])
+
         refreshPermissions()
-
-        contentView = container
     }
 
+    private func sizeToContent(animate: Bool) {
+        guard let stack = (contentView as? NSScrollView)?.documentView else { return }
+        stack.layoutSubtreeIfNeeded()
+        let contentHeight = stack.fittingSize.height
+        // Add title bar height (~28px) to content height
+        let titleBarHeight = frame.height - contentLayoutRect.height
+        let targetHeight = min(contentHeight + titleBarHeight + 4, 700)
+        let frame = self.frame
+        let newFrame = NSRect(x: frame.origin.x, y: frame.origin.y - (targetHeight - frame.height),
+                              width: frame.width, height: targetHeight)
+        setFrame(newFrame, display: true, animate: animate)
+    }
+
+    // MARK: - View builders
+
+    private func makeDivider() -> NSBox {
+        let d = NSBox()
+        d.boxType = .separator
+        d.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([d.widthAnchor.constraint(equalToConstant: 292)])
+        return d
+    }
+
+    private func makeSectionLabel(_ text: String) -> NSTextField {
+        let l = NSTextField(labelWithString: text)
+        l.font = .systemFont(ofSize: 10, weight: .semibold)
+        l.textColor = .tertiaryLabelColor
+        return l
+    }
+
+    private func makeCheckbox(_ title: String, action: Selector, on: Bool) -> NSButton {
+        let cb = NSButton(checkboxWithTitle: title, target: self, action: action)
+        cb.font = .systemFont(ofSize: 12)
+        cb.state = on ? .on : .off
+        return cb
+    }
+
+    private func makePermRow(label: String, fixAction: Selector, assignTo: inout NSTextField!) -> NSStackView {
+        let row = NSStackView()
+        row.orientation = .horizontal
+        row.spacing = 8
+        row.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([row.widthAnchor.constraint(equalToConstant: 292)])
+
+        let status = NSTextField(labelWithString: "\(label): checking...")
+        status.font = .systemFont(ofSize: 11)
+        status.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        row.addArrangedSubview(status)
+        assignTo = status
+
+        let fix = NSButton(title: "Fix", target: self, action: fixAction)
+        fix.bezelStyle = .inline
+        fix.font = .systemFont(ofSize: 10)
+        row.addArrangedSubview(fix)
+
+        return row
+    }
+
+    // MARK: - Advanced toggle
+
+    @objc private func toggleAdvanced(_ sender: NSButton) {
+        advancedBox.isHidden.toggle()
+        sender.title = advancedBox.isHidden ? "▶ Advanced" : "▼ Advanced"
+        sizeToContent(animate: true)
+    }
+
+    // MARK: - Permissions
+
     func refreshPermissions() {
-        // Screen Recording — check by trying to get shareable content
         Task {
             do {
                 _ = try await SCShareableContent.current
@@ -187,7 +256,6 @@ final class MainWindow: NSWindow {
             }
         }
 
-        // Accessibility
         if AXIsProcessTrusted() {
             hotkeyStatusLabel.stringValue = "Accessibility: Granted"
             hotkeyStatusLabel.textColor = .systemGreen
@@ -196,7 +264,6 @@ final class MainWindow: NSWindow {
             hotkeyStatusLabel.textColor = .systemOrange
         }
 
-        // Microphone
         let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
         switch micStatus {
         case .authorized:
@@ -214,9 +281,9 @@ final class MainWindow: NSWindow {
         }
     }
 
-    @objc private func onRefreshPerms() {
-        refreshPermissions()
-    }
+    // MARK: - Actions
+
+    @objc private func onRefreshPerms() { refreshPermissions() }
 
     @objc private func openScreenRecSettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
@@ -236,40 +303,19 @@ final class MainWindow: NSWindow {
         NSWorkspace.shared.open(url)
     }
 
-    @objc private func requestMicPermission() {
-        NSLog("Screenie: Requesting mic permission...")
-
-        // Actually try to use the mic — this forces macOS to show the permission dialog
-        do {
-            let session = AVCaptureSession()
-            guard let mic = AVCaptureDevice.default(for: .audio) else {
-                NSLog("Screenie: No microphone device found")
-                return
-            }
-            let input = try AVCaptureDeviceInput(device: mic)
-            if session.canAddInput(input) {
-                session.addInput(input)
-                session.startRunning()
-                // Brief capture to trigger the dialog
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    session.stopRunning()
-                    NSLog("Screenie: Mic test session stopped, permission should be granted now")
-                }
-            }
-        } catch {
-            NSLog("Screenie: Mic access error: %@ — opening settings", error.localizedDescription)
-            let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!
-            NSWorkspace.shared.open(url)
-        }
+    @objc private func toggleAudio() { Settings.shared.captureAudio = (audioCheckbox.state == .on) }
+    @objc private func toggleMic() { Settings.shared.captureMicrophone = (micCheckbox.state == .on) }
+    @objc private func toggleMonitorStyle() { Settings.shared.monitorStyle = (monitorCheckbox.state == .on) }
+    @objc private func bgColorChanged() {
+        let c = colorWell.color.usingColorSpace(.deviceRGB) ?? colorWell.color
+        Settings.shared.bgColor = (r: c.redComponent, g: c.greenComponent, b: c.blueComponent)
     }
-
-    @objc private func toggleAudio() {
-        Settings.shared.captureAudio = (audioCheckbox.state == .on)
-    }
-
-    @objc private func toggleMic() {
-        Settings.shared.captureMicrophone = (micCheckbox.state == .on)
-    }
+    @objc private func toggleAutoZoom() { Settings.shared.autoZoom = (autoZoomCheckbox.state == .on) }
+    @objc private func toggleAutoFollow() { Settings.shared.autoFollow = (autoFollowCheckbox.state == .on) }
+    @objc private func toggleCursorBounce() { Settings.shared.cursorBounce = (cursorBounceCheckbox.state == .on) }
+    @objc private func toggleSpeedRamp() { Settings.shared.speedRamping = (speedRampCheckbox.state == .on) }
+    @objc private func toggleKeystroke() { Settings.shared.keystrokeOverlay = (keystrokeCheckbox.state == .on) }
+    @objc private func toggleCursorSmooth() { Settings.shared.cursorSmoothing = (cursorSmoothCheckbox.state == .on) }
 }
 
 protocol MainWindowDelegate: AnyObject {}

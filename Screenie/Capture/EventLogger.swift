@@ -9,6 +9,7 @@ struct LoggedEvent: Codable {
     let x: CGFloat?
     let y: CGFloat?
     let windowName: String?
+    let keyLabel: String?
 
     enum EventType: String, Codable {
         case mouseMove
@@ -78,13 +79,14 @@ final class EventLogger {
             guard let self else { return }
             let pos = NSEvent.mouseLocation
             let point = CGPoint(x: pos.x, y: pos.y)
-            if point.distance(to: self.lastMousePosition) > 1 { // 1px threshold for smooth tracking
+            if point.squaredDistance(to: self.lastMousePosition) > 1 { // 1px² threshold for smooth tracking
                 self.lastMousePosition = point
                 self.events.append(LoggedEvent(
                     timestamp: self.elapsed,
                     type: .mouseMove,
                     x: point.x, y: point.y,
-                    windowName: nil
+                    windowName: nil,
+                    keyLabel: nil
                 ))
             }
         }
@@ -117,18 +119,48 @@ final class EventLogger {
             timestamp: elapsed,
             type: .mouseClick,
             x: pos.x, y: pos.y,
-            windowName: nil
+            windowName: nil,
+            keyLabel: nil
         ))
         NSLog("Screenie: Click at (%.0f, %.0f) t=%.1f", pos.x, pos.y, elapsed)
     }
 
     private func recordKeyPress(_ event: NSEvent) {
+        let label = Self.keyLabel(for: event)
         events.append(LoggedEvent(
             timestamp: elapsed,
             type: .keyPress,
             x: nil, y: nil,
-            windowName: nil
+            windowName: nil,
+            keyLabel: label
         ))
+    }
+
+    private static func keyLabel(for event: NSEvent) -> String {
+        var parts: [String] = []
+        let mods = event.modifierFlags
+        if mods.contains(.control) { parts.append("⌃") }
+        if mods.contains(.option) { parts.append("⌥") }
+        if mods.contains(.shift) { parts.append("⇧") }
+        if mods.contains(.command) { parts.append("⌘") }
+
+        // Map special keys to readable names
+        let keyName: String
+        switch event.keyCode {
+        case 36: keyName = "↩"
+        case 48: keyName = "⇥"
+        case 49: keyName = "Space"
+        case 51: keyName = "⌫"
+        case 53: keyName = "⎋"
+        case 123: keyName = "←"
+        case 124: keyName = "→"
+        case 125: keyName = "↓"
+        case 126: keyName = "↑"
+        default:
+            keyName = event.charactersIgnoringModifiers?.uppercased() ?? "?"
+        }
+        parts.append(keyName)
+        return parts.joined()
     }
 
     private func observeWindowChanges() {
@@ -144,7 +176,8 @@ final class EventLogger {
                     timestamp: self.elapsed,
                     type: .windowChange,
                     x: nil, y: nil,
-                    windowName: appName
+                    windowName: appName,
+                    keyLabel: nil
                 ))
             }
         }
@@ -152,7 +185,9 @@ final class EventLogger {
 }
 
 private extension CGPoint {
-    func distance(to other: CGPoint) -> CGFloat {
-        sqrt(pow(x - other.x, 2) + pow(y - other.y, 2))
+    func squaredDistance(to other: CGPoint) -> CGFloat {
+        let dx = x - other.x
+        let dy = y - other.y
+        return dx * dx + dy * dy
     }
 }

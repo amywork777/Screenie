@@ -171,23 +171,31 @@ final class Compositor {
         if let track = composition.tracks(withMediaType: .video).first {
             let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: track)
 
-            for frame in zoomFrames where frame.zoomLevel > 1.0 {
+            var wasZoomed = false
+            for frame in zoomFrames {
                 let outputTime = sourceTimeToOutputTime(
                     sourceTime: frame.timestamp,
                     timeMappings: timeMappings
                 )
                 let time = CMTime(seconds: outputTime, preferredTimescale: 600)
 
-                let scaleX = naturalSize.width / frame.cropRect.width
-                let scaleY = naturalSize.height / frame.cropRect.height
-                let translateX = -frame.cropRect.origin.x * scaleX
-                let translateY = -frame.cropRect.origin.y * scaleY
+                if frame.zoomLevel > 1.0 {
+                    let scaleX = naturalSize.width / frame.cropRect.width
+                    let scaleY = naturalSize.height / frame.cropRect.height
+                    let translateX = -frame.cropRect.origin.x * scaleX
+                    let translateY = -frame.cropRect.origin.y * scaleY
 
-                var transform = CGAffineTransform.identity
-                transform = transform.scaledBy(x: scaleX, y: scaleY)
-                transform = transform.translatedBy(x: translateX / scaleX, y: translateY / scaleY)
+                    var transform = CGAffineTransform.identity
+                    transform = transform.scaledBy(x: scaleX, y: scaleY)
+                    transform = transform.translatedBy(x: translateX / scaleX, y: translateY / scaleY)
 
-                layerInstruction.setTransform(transform, at: time)
+                    layerInstruction.setTransform(transform, at: time)
+                    wasZoomed = true
+                } else if wasZoomed {
+                    // Reset to identity so the video doesn't stay stuck zoomed in
+                    layerInstruction.setTransform(.identity, at: time)
+                    wasZoomed = false
+                }
             }
 
             instruction.layerInstructions = [layerInstruction]

@@ -1,6 +1,7 @@
 import AppKit
 import AVFoundation
 import ServiceManagement
+import UserNotifications
 
 @main
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -29,6 +30,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menuBar.delegate = self
         menuBar.setup()
+
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
 
         if !settings.hasCompletedOnboarding {
             // First launch — show guided onboarding
@@ -154,15 +157,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let currentSession = session else { return }
         sounds.playStop()
         recordingIndicator.hide()
-        floatingIndicator.hide()
         menuBar.showRecordingState(false)
         mainWindow?.updateRecordingStatus(false)
+
+        // Switch floating indicator to processing mode
+        floatingIndicator.showProcessing()
 
         session = nil
 
         Task {
             guard let result = await currentSession.stop() else {
                 NSLog("Screenie: Recording session returned nil")
+                await MainActor.run { floatingIndicator.hide() }
                 return
             }
 
@@ -170,9 +176,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             let archiveURL = storage.archivePath()
             let editor = SimpleEditor()
+            editor.onProgress = { [weak self] progress in
+                self?.floatingIndicator.updateProgress(progress)
+            }
 
             do {
-                // Auto-edit: speed ramp idle sections
                 let output = try await editor.process(
                     videoURL: result.videoURL,
                     micAudioURL: result.micAudioURL,
@@ -182,15 +190,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 NSLog("Screenie: Auto-edit complete: %.1fs → %.1fs", output.originalDuration, output.editedDuration)
 
                 await MainActor.run {
-                    recordingIndicator.hide()
+                    floatingIndicator.hide()
                     copyFileToClipboard(archiveURL)
                     menuBar.refreshMenu()
 
-                    // Show preview HUD
                     let hud = PreviewHUD()
                     hud.hudDelegate = self
-                    hud.show(clipboardURL: archiveURL, archiveURL: archiveURL, duration: output.editedDuration)
+                    hud.show(
+                        clipboardURL: archiveURL,
+                        archiveURL: archiveURL,
+                        duration: output.editedDuration,
+                        originalDuration: output.originalDuration
+                    )
                     previewHUD = hud
+
+                    sendCompletionNotification(duration: output.editedDuration)
                 }
             } catch {
                 NSLog("Screenie: Auto-edit failed: %@, saving raw instead", "\(error)")
@@ -204,13 +218,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     return
                 }
                 await MainActor.run {
-                    recordingIndicator.hide()
+                    floatingIndicator.hide()
                     copyFileToClipboard(archiveURL)
                     menuBar.refreshMenu()
 
                     let hud = PreviewHUD()
                     hud.hudDelegate = self
-                    hud.show(clipboardURL: archiveURL, archiveURL: archiveURL, duration: 0)
+                    hud.show(clipboardURL: archiveURL, archiveURL: archiveURL, duration: 0, originalDuration: 0)
                     previewHUD = hud
                 }
             }
@@ -218,6 +232,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Clean up temp files
             storage.cleanupSession(dir: result.sessionDir)
         }
+    }
+
+    private func sendCompletionNotification(duration: Double) {
+        let content = UNMutableNotificationContent()
+        content.title = "Recording ready"
+        content.body = String(format: "%.0fs video copied to clipboard", duration)
+        content.sound = nil
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request)
     }
 
     private func copyFileToClipboard(_ url: URL) {

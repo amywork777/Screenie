@@ -1,9 +1,11 @@
 import AppKit
 
-/// Wispr Flow-style floating pill indicator that appears during recording
+/// Wispr Flow-style floating pill indicator that appears during recording and processing
 final class FloatingIndicator: NSPanel {
     private var dotView: NSView!
     private var timeLabel: NSTextField!
+    private var progressBar: NSView!
+    private var progressFill: NSView!
     private var pulseTimer: Timer?
     private var durationTimer: Timer?
     private var startTime: Date?
@@ -46,6 +48,20 @@ final class FloatingIndicator: NSPanel {
         timeLabel.frame = NSRect(x: 34, y: 8, width: 72, height: 20)
         container.addSubview(timeLabel)
 
+        // Progress bar (hidden during recording, shown during processing)
+        progressBar = NSView(frame: NSRect(x: 10, y: 6, width: 100, height: 4))
+        progressBar.wantsLayer = true
+        progressBar.layer?.backgroundColor = NSColor(white: 1.0, alpha: 0.15).cgColor
+        progressBar.layer?.cornerRadius = 2
+        progressBar.isHidden = true
+        container.addSubview(progressBar)
+
+        progressFill = NSView(frame: NSRect(x: 0, y: 0, width: 0, height: 4))
+        progressFill.wantsLayer = true
+        progressFill.layer?.backgroundColor = NSColor.systemPink.cgColor
+        progressFill.layer?.cornerRadius = 2
+        progressBar.addSubview(progressFill)
+
         contentView = container
     }
 
@@ -59,6 +75,9 @@ final class FloatingIndicator: NSPanel {
 
         startTime = Date()
         timeLabel.stringValue = "0:00"
+        timeLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .medium)
+        dotView.layer?.backgroundColor = NSColor.systemRed.cgColor
+        progressBar.isHidden = true
 
         alphaValue = 0
         orderFrontRegardless()
@@ -70,6 +89,44 @@ final class FloatingIndicator: NSPanel {
 
         startPulse()
         startDurationTimer()
+    }
+
+    func showProcessing() {
+        // Switch from recording mode to processing mode
+        pulseTimer?.invalidate()
+        pulseTimer = nil
+        durationTimer?.invalidate()
+        durationTimer = nil
+
+        dotView.layer?.backgroundColor = NSColor.systemPink.cgColor
+        dotView.alphaValue = 1.0
+        timeLabel.stringValue = "Editing..."
+        timeLabel.font = .systemFont(ofSize: 11, weight: .medium)
+        progressBar.isHidden = false
+        progressFill.frame = NSRect(x: 0, y: 0, width: 0, height: 4)
+
+        // Make sure it's visible
+        if !isVisible {
+            if let screen = NSScreen.main {
+                let screenFrame = screen.frame
+                let x = screenFrame.midX - frame.width / 2
+                let y = screenFrame.maxY - 60
+                setFrameOrigin(NSPoint(x: x, y: y))
+            }
+            alphaValue = 1
+            orderFrontRegardless()
+        }
+    }
+
+    func updateProgress(_ progress: Double) {
+        let barWidth = progressBar.frame.width
+        let fillWidth = barWidth * CGFloat(progress)
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.15
+            progressFill.animator().frame = NSRect(x: 0, y: 0, width: fillWidth, height: 4)
+        }
+        let pct = Int(progress * 100)
+        timeLabel.stringValue = "Editing... \(pct)%"
     }
 
     func hide() {

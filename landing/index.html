@@ -321,7 +321,7 @@ h1 {
 .demo-rec-box {
   width: 160px;
   height: 100px;
-  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  background: linear-gradient(135deg, #d9a6e6, #f2b3c7);
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.1);
   position: relative;
@@ -375,27 +375,27 @@ h1 {
   100% { left: 25%; top: 40%; }
 }
 
-.mini-ring {
+.mini-bounce {
   position: absolute;
-  width: 16px; height: 16px;
-  border: 1.5px solid rgba(255,255,255,0.5);
+  width: 18px; height: 18px;
+  background: radial-gradient(circle, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 70%);
   border-radius: 50%;
   pointer-events: none;
 }
-.mini-ring-1 { animation: mring1 3s ease infinite; }
-.mini-ring-2 { animation: mring2 3s ease infinite; }
+.mini-bounce-1 { animation: mbounce1 3s ease infinite; }
+.mini-bounce-2 { animation: mbounce2 3s ease infinite; }
 
-@keyframes mring1 {
-  0%, 29% { opacity: 0; left: calc(55% - 3px); top: calc(35% + 2px); transform: scale(0.3); }
-  31% { opacity: 1; transform: scale(0.3); }
-  38% { opacity: 0; transform: scale(1.2); }
-  39%, 100% { opacity: 0; }
+@keyframes mbounce1 {
+  0%, 29% { opacity: 0; left: calc(55% - 5px); top: calc(35% - 2px); transform: scale(0.5); }
+  30% { opacity: 1; transform: scale(1.4); }
+  36% { opacity: 0; transform: scale(0.8); }
+  37%, 100% { opacity: 0; }
 }
-@keyframes mring2 {
-  0%, 64% { opacity: 0; left: calc(40% - 3px); top: calc(60% + 2px); transform: scale(0.3); }
-  66% { opacity: 1; transform: scale(0.3); }
-  73% { opacity: 0; transform: scale(1.2); }
-  74%, 100% { opacity: 0; }
+@keyframes mbounce2 {
+  0%, 64% { opacity: 0; left: calc(40% - 5px); top: calc(60% - 2px); transform: scale(0.5); }
+  65% { opacity: 1; transform: scale(1.4); }
+  71% { opacity: 0; transform: scale(0.8); }
+  72%, 100% { opacity: 0; }
 }
 
 /* Phase 3: Preview HUD */
@@ -410,7 +410,7 @@ h1 {
 
 .demo-hud-thumb {
   height: 65px;
-  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  background: linear-gradient(135deg, #d9a6e6, #f2b3c7);
   position: relative;
   display: flex;
   align-items: center;
@@ -681,7 +681,7 @@ footer a:hover { color: var(--text); }
       Record → auto-edit → done in seconds
     </div>
     <h1>Screen recordings that edit themselves</h1>
-    <p class="hero-desc">Double-tap a key, record your screen. Screenie handles the rest — smart zoom on clicks, speed ramping through idle moments, smooth cursor tracking. Open source.</p>
+    <p class="hero-desc">Double-tap a key, record your screen. Screenie handles the rest — smart zoom, auto-follow camera, speed ramping, styled output with window chrome. Open source.</p>
     <div class="hero-actions">
       <a href="https://github.com/amywork777/Screenie/releases/latest/download/Screenie.dmg" class="btn btn-big">Download for Mac</a>
       <a href="https://github.com/amywork777/Screenie" class="btn-outline">
@@ -713,8 +713,8 @@ footer a:hover { color: var(--text); }
         <div class="demo-rec-box">
           <div class="demo-rec-pill"><div class="mini-dot"></div><span class="mini-time">0:04</span></div>
           <svg class="mini-cursor" viewBox="0 0 10 12" fill="none"><path d="M1 1l3.5 10 1.5-3.5 4-1.5L1 1z" fill="white" stroke="black" stroke-width="0.8"/></svg>
-          <div class="mini-ring mini-ring-1"></div>
-          <div class="mini-ring mini-ring-2"></div>
+          <div class="mini-bounce mini-bounce-1"></div>
+          <div class="mini-bounce mini-bounce-2"></div>
         </div>
       </div>
       <!-- Step 3 visual -->
@@ -739,34 +739,34 @@ footer a:hover { color: var(--text); }
   <h2>No timeline.<br>No editing app.<br>Just record and go.</h2>
   <div class="f-grid">
     <div class="f-item">
+      <div class="f-icon">🎬</div>
+      <h3>Styled output</h3>
+      <p>Recordings export with a pink gradient background, rounded corners, window title bar with traffic lights, and drop shadow. Looks polished instantly.</p>
+    </div>
+    <div class="f-item">
+      <div class="f-icon">🔍</div>
+      <h3>Smart zoom + auto-follow</h3>
+      <p>Camera smoothly follows your cursor with a deadzone, and zooms in on clicks with spring physics. Typing won't trigger zoom — only deliberate actions.</p>
+    </div>
+    <div class="f-item">
       <div class="f-icon">⚡</div>
       <h3>Speed ramping</h3>
       <p>Idle moments speed up 4–8x. Active parts stay normal. A 30s recording becomes a tight clip automatically.</p>
     </div>
     <div class="f-item">
-      <div class="f-icon">🔍</div>
-      <h3>Auto zoom on clicks</h3>
-      <p>Each click triggers a smooth zoom-in with spring physics. Camera pans between click positions cinematically.</p>
+      <div class="f-icon">🖱</div>
+      <h3>Cursor bounce</h3>
+      <p>Smooth cursor with jitter removal. On click, the cursor pops up with a satisfying spring bounce — scales up and settles back naturally.</p>
     </div>
     <div class="f-item">
-      <div class="f-icon">🖱</div>
-      <h3>Cursor + click rings</h3>
-      <p>Real macOS cursor rendered with perfect sync. Expanding ring highlights every click so viewers can follow along.</p>
+      <div class="f-icon">⌨️</div>
+      <h3>Keystroke overlay</h3>
+      <p>Keyboard shortcuts appear as sleek pills at the bottom of the screen. Shows modifier combos like ⌘C — typing is automatically filtered out.</p>
     </div>
     <div class="f-item">
       <div class="f-icon">👻</div>
       <h3>Invisible until needed</h3>
-      <p>No dock icon, no window. Lives in your menu bar. Double-tap Control to record, double-tap to stop.</p>
-    </div>
-    <div class="f-item">
-      <div class="f-icon">📋</div>
-      <h3>Clipboard ready</h3>
-      <p>Finished video saves to your clipboard. A preview HUD appears in the corner — click to open or share.</p>
-    </div>
-    <div class="f-item">
-      <div class="f-icon">🔊</div>
-      <h3>Audio feedback</h3>
-      <p>Synthesized start/stop tones and a floating recording pill with live timer so you always know the state.</p>
+      <p>No dock icon, no window. Lives in your menu bar. Double-tap Control to record, double-tap to stop. Clipboard ready with preview HUD.</p>
     </div>
   </div>
 </section>
@@ -815,8 +815,8 @@ footer a:hover { color: var(--text); }
 <script>
 const stepData = {
   1: { title: 'Double-tap Control', desc: 'Recording starts instantly. A floating pill appears with a live timer. No menus, no setup, no dialogs.' },
-  2: { title: 'Do your thing', desc: 'Click, scroll, type — Screenie tracks your cursor and logs every interaction for the auto-edit pass.' },
-  3: { title: 'Auto-edited & ready', desc: 'Screenie edits the video — speed ramp, zoom, cursor — and copies it to your clipboard. Preview pops up in the corner.' }
+  2: { title: 'Do your thing', desc: 'Click, scroll, type — Screenie tracks your cursor, logs clicks and shortcuts, and the camera auto-follows with a deadzone.' },
+  3: { title: 'Styled & ready', desc: 'Screenie auto-edits with speed ramps, smart zoom, cursor bounce, keystroke overlays, and exports with a gradient background and window chrome. Copied to clipboard.' }
 };
 
 function showStep(n) {
