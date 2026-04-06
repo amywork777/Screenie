@@ -32,5 +32,9 @@
     <string>NSApplication</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Screenie needs microphone access to record your voice alongside screen recordings.</string>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Screenie needs screen recording access to capture your screen.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Screenie needs camera access for webcam overlay.</string>
 </dict>
 </plist>

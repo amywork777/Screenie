@@ -125,6 +125,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func startRecording() {
         guard session == nil else { return }
+
         sounds.playStart()
         recordingIndicator.show()
         floatingIndicator.show()
@@ -144,21 +145,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             } catch {
                 NSLog("Screenie: Recording failed: \(error)")
                 await MainActor.run {
+                    sounds.playStop()
                     recordingIndicator.hide()
+                    floatingIndicator.hide()
                     menuBar.showRecordingState(false)
                     mainWindow?.updateRecordingStatus(false)
                     session = nil
+
+                    // If it's a permission error, open settings
+                    if "\(error)".contains("3801") || "\(error)".contains("declined") {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
                 }
             }
         }
     }
 
     private func stopRecording() {
-        guard let currentSession = session else { return }
+        // Always reset UI state, even if session is nil (e.g. recording failed to start)
         sounds.playStop()
         recordingIndicator.hide()
+        floatingIndicator.hide()
         menuBar.showRecordingState(false)
         mainWindow?.updateRecordingStatus(false)
+
+        guard let currentSession = session else {
+            session = nil
+            return
+        }
 
         // Switch floating indicator to processing mode
         floatingIndicator.showProcessing()

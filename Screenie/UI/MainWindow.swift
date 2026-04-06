@@ -240,7 +240,10 @@ final class MainWindow: NSWindow {
     // MARK: - Permissions
 
     func refreshPermissions() {
-        if CGPreflightScreenCaptureAccess() {
+        // Screen recording: check using CGWindowListCopyWindowInfo (works reliably on macOS 26)
+        let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]]
+        let hasWindowInfo = windowList != nil && !(windowList?.isEmpty ?? true)
+        if hasWindowInfo {
             screenRecLabel.stringValue = "Screen Recording: Granted"
             screenRecLabel.textColor = .systemGreen
         } else {
@@ -275,11 +278,29 @@ final class MainWindow: NSWindow {
 
     // MARK: - Actions
 
-    @objc private func onRefreshPerms() { refreshPermissions() }
+    @objc private func onRefreshPerms() {
+        // Screen recording permission requires app restart to take effect
+        // If it's still not granted after user toggled it on, offer to restart
+        if !CGPreflightScreenCaptureAccess() {
+            let alert = NSAlert()
+            alert.messageText = "Restart Required"
+            alert.informativeText = "Screen recording permission requires restarting Screenie to take effect. Restart now?"
+            alert.addButton(withTitle: "Restart")
+            alert.addButton(withTitle: "Cancel")
+            if alert.runModal() == .alertFirstButtonReturn {
+                let url = Bundle.main.bundleURL
+                let task = Process()
+                task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+                task.arguments = ["-n", url.path]
+                try? task.run()
+                NSApp.terminate(nil)
+                return
+            }
+        }
+        refreshPermissions()
+    }
 
     @objc private func openScreenRecSettings() {
-        // Try the proper request API first, then open settings
-        CGRequestScreenCaptureAccess()
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
             NSWorkspace.shared.open(url)
         }
